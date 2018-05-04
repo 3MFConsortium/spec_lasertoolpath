@@ -128,7 +128,12 @@ I don't think so: A producer using the laser toolpath specification MUST mark th
 ##### Figure 2-1: Overview of model XML structure of 3MF with laser toolpath additions.
 
 #####
-![Overview of model XML structure of 3MF with beam lattice additions](images/figure_2-1.png)
+![Overview of model XML structure of 3MF with lasertoolpath additions](images/lasertoolpath/slice.png)
+
+##### Figure 2-2: Overview of model XML structure of the lasertoolpathlayer document.
+
+#####
+![Overview of model XML structure of the lasertoolpathlayer document](images/lasertoolpath/lasertoolpathlayer.png)
 
 # Chapter 2. Slice
 
@@ -145,13 +150,13 @@ Each toolpath.xml describes what is in this slice. Since slices can be for \<obj
 
 TODO: Unification rules
 - Unify with different ztop. Producers SHOULD use same z-top for all toolpathxml
-- Unifiy from different objects
+- Unify from different objects
 
 TODO: slice specification: case where slices are referenced from components, and a component-object of this components-object references slice-geometry again.
 
 
 # Chapter 3. Toolpathlayer
-Not a model file, subject to different schema xmlns=”http://schemas.microsoft.com/3dmanufacturing/laserpathlayer/2018/5” 
+Not a model file, subject to different schema xmlns=”http://schemas.microsoft.com/3dmanufacturing/laserpathlayer/2018/05” 
 TODO: describe that this requires an OPC relation
 
 ## 3.1. Profiles
@@ -168,6 +173,7 @@ Element **\<profile>**
 | name   | **ST\_String** | required |   | Name for this profile. Must not be unique. |
 | laserpower | **ST\_PositiveNumber** | required | none | Specifies the power of the laser used, measured in W. TODO: correct physical quantity? Useful unit?|
 | exposurespeed   | **ST\_PositiveNumber** | required   |   | speed at which the projected laser spot moves measured in mm/s TODO: units? |
+| laserfocus   | **ST\_PositiveNumber** | required   |   | Units? TODO: spotsize? |
 | laserindex | **ST\_PositiveNumber** | optional  |   | ID of the laser to be used. TODO: allow "any" OR make it optional. |
 
 The \<profile\>-elements are used to specify the properties of a laser.
@@ -245,7 +251,34 @@ To describe continuously varying properties (e.g. speeds). Cut the polygon and u
 ## Appendix B. 3MF XSD Schema
 
 ```xml
-
+<?xml version="1.0" encoding="UTF-8"?> 
+<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace" 
+targetNamespace="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018/05" elementFormDefault="unqualified" attributeFormDefault="unqualified" blockDefault="#all"> 
+	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd"/>
+  <xs:annotation> 
+		<xs:documentation><![CDATA[   Schema notes: 
+ 
+  Items within this schema follow a simple naming convention of appending a prefix indicating the type of element for references: 
+ 
+  Unprefixed: Element names 
+  CT_: Complex types 
+  ST_: Simple types 
+   
+  ]]></xs:documentation> 
+	</xs:annotation> 
+	<!-- Complex Types --> 
+	<xs:complexType name="CT_Slice"> 
+		<xs:attribute name="toolpath" type="ST_UriReference" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+	<!-- Simple Types -->
+	<xs:simpleType name="ST_UriReference"> 
+		<xs:restriction base="xs:anyURI"> 
+			<xs:pattern value="/.*"/> 
+		</xs:restriction> 
+	</xs:simpleType>
+	<!-- Elements --> 
+</xs:schema>
 ```
 
 
