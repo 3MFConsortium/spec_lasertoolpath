@@ -37,8 +37,6 @@
 
 [Chapter 3. Object](#chapter-3-toolpathlayer)
 
-[]
-
 [Part II. Appendixes](#part-ii-appendixes)
 
 [Appendix A. Glossary](#appendix-a-glossary)
