@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/lasertoolpathlayer/2018/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace" targetNamespace="http://schemas.microsoft.com/3dmanufacturing/lasertoolpathlayer/2018/05" 
+elementFormDefault="unqualified" attributeFormDefault="unqualified" blockDefault="#all">
+	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd"/>
+	<xs:annotation> 
+		<xs:documentation><![CDATA[   Schema notes: 
+ 
+  Items within this schema follow a simple naming convention of appending a prefix indicating the type of element for references: 
+ 
+  Unprefixed: Element names 
+  CT_: Complex types 
+  ST_: Simple types 
+   
+  ]]></xs:documentation> 
+	</xs:annotation> 
+	<!-- Complex Types --> 
+	<xs:complexType name="CT_ToolPathLayer">   
+		<xs:sequence> 
+			<xs:element ref="profiles" />
+			<xs:element ref="vertices" />
+			<xs:element ref="elements" />
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
+		</xs:sequence> 
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType> 
+	<xs:complexType name="CT_Profiles">   
+		<xs:sequence> 
+			<xs:element ref="profile" minOccurs="0" maxOccurs="2147483647"/> 
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
+		</xs:sequence> 
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType>
+	<xs:complexType name="CT_Profile">   
+		<xs:sequence> 
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
+		</xs:sequence> 
+		<xs:attribute name="id" type="ST_ResourceID"/>
+		<xs:attribute name="name" type="ST_String"/>
+		<xs:attribute name="laserpower" type="ST_PositiveNumber"/>
+		<xs:attribute name="exposurespeed" type="ST_PositiveNumber"/>
+		<xs:attribute name="laserindex" type="ST_PositiveNumber"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType>
+	
+	<xs:complexType name="CT_Vertices">   
+		<xs:sequence> 
+			<xs:element ref="vertex" minOccurs="0" maxOccurs="2147483647"/> 
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
+		</xs:sequence> 
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType>
+	<xs:complexType name="CT_Vertex"> 
+		<xs:attribute name="x" type="ST_Number" use="required"/> 
+		<xs:attribute name="y" type="ST_Number" use="required"/> 
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType> 
+	
+	<xs:complexType name="CT_Elements">   
+		<xs:sequence> 
+			<xs:element ref="element" minOccurs="0" maxOccurs="2147483647"/> 
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
+		</xs:sequence> 
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType>
+	
+	<xs:complexType name="CT_Element">   
+		<xs:sequence> 
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
+		</xs:sequence> 
+		<xs:attribute name="type" type="ST_ElementType" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/> 
+	</xs:complexType>
+	
+	<!-- Simple Types --> 
+	<xs:simpleType name="ST_Unit"> 
+		<xs:restriction base="xs:string"> 
+			<xs:enumeration value="micron"/> 
+			<xs:enumeration value="millimeter"/> 
+			<xs:enumeration value="centimeter"/> 
+			<xs:enumeration value="inch"/> 
+			<xs:enumeration value="foot"/> 
+			<xs:enumeration value="meter"/> 
+		</xs:restriction> 
+	</xs:simpleType> 
+	<xs:simpleType name="ST_UriReference"> 
+		<xs:restriction base="xs:anyURI"> 
+			<xs:pattern value="/.*"/> 
+		</xs:restriction> 
+	</xs:simpleType> 
+	<xs:simpleType name="ST_Number"> 
+		<xs:restriction base="xs:double"> 
+			<xs:whiteSpace value="collapse"/> 
+			<xs:pattern value="((\-|\+)?(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))((e|E)(\-|\+)?[0-9]+)?)"/> 
+		</xs:restriction> 
+	</xs:simpleType> 
+	<xs:simpleType name="ST_ResourceID"> 
+		<xs:restriction base="xs:positiveInteger"> 
+			<xs:maxExclusive value="21474836478"/> 
+		</xs:restriction> 
+	</xs:simpleType> 
+	<xs:simpleType name="ST_ResourceIndex"> 
+		<xs:restriction base="xs:nonNegativeInteger"> 
+			<xs:maxExclusive value="21474836478"/> 
+		</xs:restriction> 
+	</xs:simpleType> 
+	<xs:simpleType name="ST_ElementType"> 
+		<xs:restriction base="xs:string"> 
+			<xs:enumeration value="hatches"/> 
+			<xs:enumeration value="polygon"/>
+			<xs:enumeration value="sync"/>
+			<xs:enumeration value="delay"/>
+			<xs:enumeration value="other"/>
+		</xs:restriction> 
+	</xs:simpleType> 
+	<!-- Elements -->
+	<xs:element name="toolpathlayer" type="CT_ToolPathLayer"/>
+	<xs:element name="profiles" type="CT_Profiles"/>
+	<xs:element name="profile" type="CT_Profile"/>
+	<xs:element name="vertices" type="CT_Vertices"/>
+	<xs:element name="vertex" type="CT_Vertex"/>
+	<xs:element name="elements" type="CT_Elements"/>
+	<xs:element name="element" type="CT_Element"/>
+</xs:schema> 
