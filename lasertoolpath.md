@@ -109,7 +109,7 @@ Editing applications are subject to all of the above rules.
 
 # Chapter 1. Overview of Additions
 
-![Toolpath image](images/lasertoolpath/overview_2.png)
+![Toolpath image](images/overview_2.png)
 
 This document describes new elements, each of which is OPTIONAL for producers, but MUST be supported by consumers that specify support for this laser toolpath extension of 3MF.
 
@@ -137,7 +137,7 @@ I don't think so: A producer using the laser toolpath specification MUST mark th
 
 Element **\<slice>**
 
-![slice XML structure](images/lasertoolpath/slice.png)
+![slice XML structure](images/slice.png)
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
@@ -180,7 +180,7 @@ The \<profile\>-elements are used to specify the properties of a laser.
 ## 3.2. Vertices
 Element **\<vertices>**
 
-![vertices XML structure](images/lasertoolpath/vertices.png)
+![vertices XML structure](images/vertices.png)
 
 The vertices element contains all the \<vertex\> elements for this toolpathlayer.
 The vertices represent the points that the toolpaths in this layer can traverse.
@@ -192,7 +192,7 @@ In order to avoid integer overflows, a \<vertices\> element MUST contain less th
 ## 3.2.1 Vertex
 Element **\<vertex>**
 
-![vertex XML structure](images/lasertoolpath/vertex.png)
+![vertex XML structure](images/vertex.png)
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
