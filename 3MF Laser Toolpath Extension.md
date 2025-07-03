@@ -1,5 +1,5 @@
 #
-# 3MF Laser Toolpath Extension
+# 3MF Toolpath Extension
 
 ## Specification & Reference Guide
 
@@ -13,7 +13,7 @@
 
 
 
-| **Version** | 0.1 |
+| **Version** | 0.8 |
 | --- | --- |
 | **Status** | Draft |
 
@@ -55,7 +55,7 @@
 
 ## 1.1. About this Specification
 
-This 3MF laser toolpath specification is an extension to the core 3MF specification. This document cannot stand alone and only applies as an addendum to the core 3MF specification. Usage of this and any other 3MF extensions follow an a la carte model, defined in the core 3MF specification.
+This 3MF toolpath specification is an extension to the core 3MF specification. This document cannot stand alone and only applies as an addendum to the core 3MF specification. Usage of this and any other 3MF extensions follow an a la carte model, defined in the core 3MF specification.
 
 Part I, "3MF Documents," presents the details of the primarily XML-based 3MF Document format. This section describes the XML markup that defines the composition of 3D documents and the appearance of each model within the document.
 
@@ -63,7 +63,7 @@ Part II, "Appendixes," contains additional technical details and schemas too ext
 
 The information contained in this specification is subject to change. Every effort has been made to ensure its accuracy at the time of publication.
 
-This extension MUST be used only with Core specification 1.x. and Slice extension specification 1.x.
+This extension MUST be used only with Core specification 1.x. and Production extension specification 1.x.
 
 ## 1.2. Document Conventions
 
@@ -111,110 +111,251 @@ Editing applications are subject to all of the above rules.
 
 ![Toolpath image](images/overview_2.png)
 
-This document describes new elements, each of which is OPTIONAL for producers, but MUST be supported by consumers that specify support for this laser toolpath extension of 3MF.
+This specification defines the Toolpath Extension for the 3MF file format. It introduces a standardized way to describe toolpath-based fabrication processes within 3MF documents, extending the existing slice-based representation to include precise motion and exposure instructions.
 
-The slice specification has introduced a layer-based representation of the build data inside a 3MF document in order to provide a more process dependent representation of the content. This allows for a more detailed modelling of geometrical details (high-resolution in XY, discrete in Z) in a way 
-that is better suited for the 3D printing process.
+The Toolpath Extension enables detailed modeling of additive manufacturing processes across laser based technologies, with provisions for future use in deposition and hybrid systems. It supports 2.5-axis (planar), 3-axis, and 6-axis toolpaths, as well as multi-head synchronization and machine-specific parameters.
 
-The laser toolpath specification extends this layer-based representation by accounting for layer-based point-exposure technologies. It allows the accurate specification of the laser path in great detail.
-This covers the 3 major branches of industrial 3D Printing, namely SLA, SLM and SLS.
+The extension is designed with flexibility and scalability in mind, allowing for:
 
-A consumer MAY calculate a different toolpath than the one specified by this extension. In addition, private extensions, information in the printticket can be used to specify machine specific parameters.
+- High-resolution geometric and exposure data per layer (e.g. laser power).
 
-I don't think so: A producer using the laser toolpath specification MUST mark the extension as required, as described in the core specification.
+- Random layer access with minimal loading and memory overhead.
 
-##### Figure 2-1: Overview of model XML structure of 3MF with laser toolpath additions.
+- Support for deterministic binary encoding.
+
+- Extensibility through profiles, metadata, and proprietary namespaces
+
+- Efficient compression and streaming of large datasets.
+
+This specification MUST be supported by consumers that advertise support for the Toolpath Extension. While all toolpath elements are optional for producers, any producer using this extension MUST declare it as required in the 3MF package, as specified in the core 3MF standard. 
+
+Consumers MAY choose to recalculate or reinterpret the toolpath data, but they MUST retain compatibility with the declared structure and semantics of the extension. Further customization is possible via private extensions or print ticket annotations.
+
+The goal of this extension is to offer a structured, vendor-neutral, and scalable foundation for toolpath data that can bridge the gap between 3D geometry and machine execution, supporting the evolving ecosystem of industrial and open-source additive manufacturing systems.
+
+A producer producing a 3MF document with toolpath extension MUST also include the production extension as required. A consumer of the toolpath extension MUST  also understand the production extension in the document. This ensures the availability of proper referencable UUIDs throughout the document.
+
+
+##### Figure 2-1: Overview of model XML structure of 3MF with toolpath additions.
 
 #####
-![Overview of model XML structure of 3MF with lasertoolpath additions](images/lasertoolpath/slice.png)
+![Overview of model XML structure of 3MF with toolpath additions](images/toolpath/slice.png)
 
-##### Figure 2-2: Overview of model XML structure of the lasertoolpathlayer document.
+##### Figure 2-2: Overview of model XML structure of the toolpathlayer document.
 
 #####
-![Overview of model XML structure of the lasertoolpathlayer document](images/lasertoolpath/lasertoolpathlayer.png)
+![Overview of model XML structure of the toolpathlayer document](images/toolpath/toolpathlayer.png)
 
-# Chapter 2. Slice
+# Chapter 2. Planar toolpathes and 3-6 axis deposition toolpathes.
 
-Element **\<slice>**
+Additive manufacturing systems employ a wide range of motion and exposure technologies, from traditional planar layer-by-layer approaches to advanced multi-axis deposition strategies. The 3MF Toolpath Extension is designed to represent both categories in a unified and extensible framework.
 
-![slice XML structure](images/slice.png)
+## 2.1 Planar Toolpaths
+
+Planar toolpaths describe geometry and process instructions that are confined to discrete, parallel layers along the Z-axis. This approach is commonly used in technologies such as:
+
+- Stereolithography (SLA)
+
+- Selective Laser Melting (SLM)
+
+- Selective Laser Sintering (SLS)
+
+Each layer consists of one or more 2D geometric primitives such as loops, polylines, hatches, arcs, and stripes. These are defined in the XY-plane and associated with a Z-height. This representation provides high resolution in XY and discrete control in Z, aligning closely with the native processing model of many industrial AM systems.
+
+Planar toolpaths are especially well suited for:
+
+- Layer-based exposure processes (e.g., galvanometer-driven laser systems)
+
+- Parallelization of path execution (e.g., multi-laser platforms)
+
+- Efficient compression and random access per layer
+
+## 2.2 Multi Axis Deposition Toolpaths (3-6 axes)
+
+Beyond planar systems, many additive processes now involve continuous motion in 3D space or require dynamic orientation of the tool or part. The Toolpath Extension supports:
+
+- 3-axis toolpaths: Represented as spatial 3D curves or polylines. Used for freeform material deposition or point-wise energy delivery on non-planar surfaces.
+
+- 6-axis toolpaths: Extend 3-axis motion with an orientation vector or normal field per point. This is required in robotic or multi-DOF systems where tool orientation is dynamically controlled (e.g., Directed Energy Deposition with a robot arm).
+
+Each axis mode introduces increasing geometric and processing complexity but allows for:
+
+- Non-planar slicing
+
+- Conformal toolpaths
+
+- Deposition on curved or dynamically repositioned surfaces
+
+- Support for rotating or tilting recoaters and tool heads
+
+3MF supports both representations under the same <toolpathlayers> construct, allowing a consistent approach to synchronization, metadata assignment, and profile referencing.
+
+## 2.3 Interoperability and Use
+
+The structure allows producers to define hybrid toolpaths combining planar and spatial segments. Consumers are expected to interpret the dimensionality and semantics of each toolpath element from its type and associated metadata. Implementers should ensure deterministic parsing and robust support for layer-specific attributes and profile overrides.
+
+## 2.4 Machine specific profile codecs
+
+While the Toolpath Extension defines a set of standardized profile parameters suitable for general use, Additive Manufacturing machines often require specialized, hardware-dependent instructions to fully utilize their capabilities. To accommodate this, the extension supports machine-specific profile codecs through the use of custom XML namespaces and schema-defined profile structures.
+
+#### Namespaced Custom Profiles
+
+Producers MAY define additional profile attributes or structures using one or more unique XML namespaces. These extensions allow encoding of vendor-specific or machine-specific instructions, such as advanced scan strategies, dynamic focus control, synchronized motion patterns, or material-specific tuning.
+
+Such machine-specific profiles:
+
+- MUST be namespaced to avoid collisions with standard 3MF elements.
+
+- MAY include mandatory parameters that are required by the target machine or control stack.
+
+- MAY be accompanied by a schema definition external to the 3MF core, enabling validation by compatible tools.
+
+#### Integration and Enforcement
+
+A producer targeting a specific machine configuration:
+
+- MUST declare the required namespace(s) in the profile section.
+
+- SHOULD mark the associated extension as required within the 3MF package if it is essential for correct fabrication.
+
+- MAY combine standardized and custom parameters within the same profile, as long as the semantics are unambiguous.
+
+#### Consumer Behavior
+
+Consumers that do not recognize a machine-specific namespace:
+
+ - MUST ignore unrecognized parameters unless the extension is declared as required, in which case the consumer MUST reject the job.
+
+- SHOULD provide a warning or fallback mechanism if partial interpretation is possible.
+
+This mechanism ensures that 3MF remains extensible and practical for a wide range of hardware platforms while preserving compatibility and predictability across implementations.
+
+# Chapter 3. OPC Packet Structure
+
+The 3MF Toolpath Extension is structured using the Open Packaging Convention (OPC), allowing efficient organization, referencing, and streaming of toolpath data. The OPC architecture enables the separation of layer data, profiles, and binary geometry into modular, independently accessible parts.
+
+## 3.1 Layer-Scoped XML Parts
+
+Each individual build layer is represented by a dedicated XML part, which contains the geometric and metadata information required to fabricate that specific layer. These per-layer XML documents allow for:
+
+- Random access to individual layers
+
+- Scalable handling of large datasets
+
+- Efficient parallelization and streaming
+
+The layer files are typically named and located under a defined folder structure, e.g.:
+
+    /Toolpath/Layers/layer00001.xml  
+    /Toolpath/Layers/layer00002.xml  
+    /Toolpath/Layers/layer00003.xml  
+    ...
+
+>**Note:**
+Each layer file contains geometry segments (e.g., loops, polylines, hatches) as well as metadata, references to toolpath profiles and build items. See Chapter 5 for the exact definitions.
+
+
+## 3.2 Relationships and Binding
+
+Each layer XML is referenced via an explicit OPC relationship from the main toolpath resource part. These relationships define the role, content type, and URI of each layer file. The root model (3dmodel.model) declares a relationship to the Toolpath Resource part, which in turn declares relationships to each layer.
+
+This structure ensures:
+- Deterministic resolution of resource dependencies
+
+- Clear scoping of each layer’s content
+
+- Compatibility with standard OPC parsers and tooling
+
+#### Example Relationship Flow
+
+    [3dmodel.model]
+       └── rels/toolpathresource.model (Toolpath Resource)
+               └── rels/layer00001.xml (Layer 1)
+               └── rels/layer00002.xml (Layer 2)
+
+#### Best Practices
+
+Producers SHOULD avoid embedding all layer data directly in the toolpath resource to maximize scalability and reusability.
+
+Each layer part SHOULD use consistent naming and indexing.
+
+Consumers MUST follow OPC relationship resolution rules to locate and load layer parts.
+
+This design supports efficient inspection, editing, and partial build strategies, and it allows hardware vendors to implement layer-specific optimizations without requiring full-model parsing.
+
+
+# Chapter 4. Toolpath Resource XML Structure
+
+Element **\<tp:toolpathresource>**
+
+![Toolpath Resource XML structure](images/toolpathresource.png)
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| toolpath | **ST\_UriReference** | optional |   | toolpath an absolute path to a toolpathlayer file within the 3MF package that contains toolpathlayer content. TODO: call it toolpathpath? |
+| id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |
+| uuid | **ST\_UUID** | required |  | Global unique identifier . |
+| unitfactor | **ST\_UUID** | required |  | Unit scaling factor to be applied to toolpath coordinates. In millimeters. |
+| toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
 
-This 3MF laser toolpath extension specification defines a new \<toolpath\>-attribute that lives inside a \<slice\> element from the Slices extension specification, as the toolpath structure is intended to be subject to the same coordinate system and to the same ztop-coordinate as the slice. This is the only entry point to the toolpath specification.
-Each toolpath.xml describes what is in this slice. Since slices can be for \<object\> (i.e. as mesh- or a components-object, it represents the build instructions for this slice of this \<object\>).
+## Chapter 4.1 Toolpath profiles
 
-TODO: Unification rules
-- Unify with different ztop. Producers SHOULD use same z-top for all toolpathxml
-- Unify from different objects
+![Toolpath Profiles XML Structure](images/toolpathprofiles.png)
 
-TODO: slice specification: case where slices are referenced from components, and a component-object of this components-object references slice-geometry again.
+Element **\<tp:toolpathprofiles>**
 
+The \<toolpathprofiles\> element contains list of toolpath profiles that allow a machine process to convert the geometric toolpath definition into low level machine instructions.
 
-# Chapter 3. Toolpathlayer
-Not a model file, subject to different schema xmlns=”http://schemas.microsoft.com/3dmanufacturing/laserpathlayer/2018/05” 
-TODO: describe that this requires an OPC relation
-
-## 3.1. Profiles
-
-Element **\<profiles>**
-
-## 3.1.1 Profile
-
-Element **\<profile>**
+Element **\<tp:toolpathprofile>**
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| id | **ST\_PositiveNumber** | required |   | Unique identifier for this profile |
-| name   | **ST\_String** | required |   | Name for this profile. Must not be unique. |
-| laserpower | **ST\_PositiveNumber** | required | none | Specifies the power of the laser used, measured in W. TODO: correct physical quantity? Useful unit?|
-| exposurespeed   | **ST\_PositiveNumber** | required   |   | speed at which the projected laser spot moves measured in mm/s TODO: units? |
-| laserfocus   | **ST\_PositiveNumber** | required   |   | Units? TODO: spotsize? |
-| laserindex | **ST\_PositiveNumber** | optional  |   | ID of the laser to be used. TODO: allow "any" OR make it optional. |
+| uuid | **ST\_UUID** | required |   | Unique identifier for this profile |
+| name   | **ST\_String** | required |   | Name for this profile. Must be unique in the toolpath. |
+| laserpower | **ST\_PositiveNumber** | optional | | Laser processes: specifies the power of the laser used, measured in W. |
+| laserspeed   | **ST\_PositiveNumber** | optional   |   | Laser processes: speed at which the projected laser spot moves while marking, measured in mm/s |
+| jumpspeed   | **ST\_PositiveNumber** | optional   |   | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
+| laserfocus   | **ST\_PositiveNumber** | optional   |   | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
+| laserindex | **ST\_Integer** | optional  |   | Laser processes: ID of the laser to be used. |
+| depositionspeed   | **ST\_PositiveNumber** | optional   |   | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 
-The \<profile\>-elements are used to specify the properties of a laser.
+The \<toolpathprofile\>-elements are used to specify the properties of a laser melting or deposition process. This specification declares the above list of generic values to use. A producer MUST ensure that all necessary profile values are properly declared for a specific application, or as enforced by a profile codec.
+
+In case of a custom profile value, the name MUST be namespaced with a properly defined XML namespace.
 
 
-## 3.2. Vertices
-Element **\<vertices>**
+## Chapter 4.2 Toolpath profile modifiers
 
-![vertices XML structure](images/vertices.png)
+TODO
 
-The vertices element contains all the \<vertex\> elements for this toolpathlayer.
-The vertices represent the points that the toolpaths in this layer can traverse.
-The order of these elements defines an implicit 0-based index that is referenced by other elements,
-such as the \<element\>-element. The producer SHOULD NOT include duplicate vertices.
-Furthermore, a producer SHOULD collapse vertices that are very closely proximal with a single vertex whenever appropriate.
-In order to avoid integer overflows, a \<vertices\> element MUST contain less than 2^31 \<vertex\>-elements.
+## Chapter 4.3 Toolpath layers
 
-## 3.2.1 Vertex
-Element **\<vertex>**
 
-![vertex XML structure](images/vertex.png)
+![Toolpath Layers XML Structure](images/toolpathlayers.png)
+
+Element **\<tp:toolpathlayers>**
+
+The \<toolpathlayers\> element contains a list of references to OPC packages that contain the specific layers.
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| x | **ST\_Number** | required |   | The position of the vertex along the X axis. |
-| y | **ST\_Number** | required |   | The position of the vertex along the Y axis. |
-
-A \<vertex\> element represents a point in 2-dimensional space that is referenced by a segment in the
-toolpath. The decimal values representing the coordinates can be recorded to arbitrary precision. The
-precision used should be no higher than that expected from the producer’s calculations.
+| zbottom | **ST\_NonNegativeInteger** | required, if toolpathtype is "planar" |  0 | Bottom Z Value of the first layer. Not applicable for non-planar toolpaths. |
 
 
-## 3.3. Elements TODO: different name
-Element **\<elements>**
+Element **\<tp:toolpathlayer>**
 
-TODO: different "types" of elements could be different XML-elements. Will make specification easier.
+| Name   | Type   | Use   | Default   | Annotation |
+| --- | --- | --- | --- | --- |
+| ztop | **ST\_PositiveInteger** | required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger than zbottom, as well as the ztop of the previous layer. |
 
-To describe continuously varying properties (e.g. speeds). Cut the polygon and use different profiles that discretise any non-constant properties.
+
+## Chapter 2.4 Custom Toolpath Metadata
 
 
 
 
-# Part II. Appendixes
+# Part II. Layer Data
+
+# Part III. Appendixes
 
 ## Appendix A. Glossary
 
