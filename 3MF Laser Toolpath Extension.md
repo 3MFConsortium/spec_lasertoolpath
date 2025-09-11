@@ -55,7 +55,7 @@
 
 ## 1.1. About this Specification
 
-This 3MF toolpath specification is an extension to the core 3MF specification. This document cannot stand alone and only applies as an addendum to the core 3MF specification. Usage of this and any other 3MF extensions follow an a la carte model, defined in the core 3MF specification.
+This 3MF toolpath specification is an extension to the core 3MF specification. This document does not stand alone and only applies as an addendum to the core 3MF specification. Usage of this and any other 3MF extensions follow an a la carte model, defined in the core 3MF specification.
 
 Part I, "3MF Documents," presents the details of the primarily XML-based 3MF Document format. This section describes the XML markup that defines the composition of 3D documents and the appearance of each model within the document.
 
@@ -84,7 +84,7 @@ Notes are formatted as follows:
 In this specification, the words that are used to define the significance of each requirement are written in uppercase. These words are used in accordance with their definitions in RFC 2119, and their respective meanings are reproduced below:
 
 - _MUST._ This word, or the adjective "REQUIRED" means that the item is an absolute requirement of the specification.
-- _SHOULD._ This word, or the adjective "RECOMMENDED" means that there may exist valid reasons in particular circumstances to ignore this item, but the full implications should be understood and the case carefully weighed before choosing a different course.
+- _SHOULD._ This word, or the adjective "RECOMMENDED" means that there are valid reasons in particular circumstances to ignore this item, but the full implications should be understood and the case carefully weighed before choosing a different course.
 - _MAY._ This word, or the adjective "OPTIONAL" means that this item is truly optional. For example, one implementation may choose to include the item because a particular marketplace or scenario requires it or because it enhances the product. Another implementation may omit the same item.
 
 ## 1.4. Software Conformance
@@ -133,20 +133,20 @@ Consumers MAY choose to recalculate or reinterpret the toolpath data, but they M
 
 The goal of this extension is to offer a structured, vendor-neutral, and scalable foundation for toolpath data that can bridge the gap between 3D geometry and machine execution, supporting the evolving ecosystem of industrial and open-source additive manufacturing systems.
 
-A producer producing a 3MF document with toolpath extension MUST also include the production extension as required. A consumer of the toolpath extension MUST  also understand the production extension in the document. This ensures the availability of proper referencable UUIDs throughout the document.
+The producer of a 3MF document with the toolpath extension MUST also include the production extension as required. A consumer of the toolpath extension MUST  also understand the production extension in the document. This ensures the availability of proper referencable UUIDs throughout the document.
 
 
 ##### Figure 2-1: Overview of model XML structure of 3MF with toolpath additions.
 
 #####
-![Overview of model XML structure of 3MF with toolpath additions](images/toolpath/slice.png)
+![Overview of model XML structure of 3MF with toolpath additions](images/slice.png)
 
 ##### Figure 2-2: Overview of model XML structure of the toolpathlayer document.
 
 #####
-![Overview of model XML structure of the toolpathlayer document](images/toolpath/toolpathlayer.png)
+![Overview of model XML structure of the toolpathlayer document](images/toolpath/toolpathlayer.png) <!--MISSING-->
 
-# Chapter 2. Planar toolpathes and 3-6 axis deposition toolpathes.
+# Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.
 
 Additive manufacturing systems employ a wide range of motion and exposure technologies, from traditional planar layer-by-layer approaches to advanced multi-axis deposition strategies. The 3MF Toolpath Extension is designed to represent both categories in a unified and extensible framework.
 
@@ -159,6 +159,9 @@ Planar toolpaths describe geometry and process instructions that are confined to
 - Selective Laser Melting (SLM)
 
 - Selective Laser Sintering (SLS)
+
+- Fused Filament Fabrication (FFF)<!-- I think it's a mistake to not include this, since most printers (granted they are hobbyist printers) are of this type. -->
+
 
 Each layer consists of one or more 2D geometric primitives such as loops, polylines, hatches, arcs, and stripes. These are defined in the XY-plane and associated with a Z-height. This representation provides high resolution in XY and discrete control in Z, aligning closely with the native processing model of many industrial AM systems.
 
@@ -174,9 +177,9 @@ Planar toolpaths are especially well suited for:
 
 Beyond planar systems, many additive processes now involve continuous motion in 3D space or require dynamic orientation of the tool or part. The Toolpath Extension supports:
 
-- 3-axis toolpaths: Represented as spatial 3D curves or polylines. Used for freeform material deposition or point-wise energy delivery on non-planar surfaces.
+- 3-axis toolpaths: Represented as spatial 3D curves or polylines. Used for freeform material deposition or point-wise energy delivery on non-planar surfaces.<!-- I'm confused...why nonplanar here. I understand that 2.5 can be nonplanar but only for FFF - not point-wise energy delivery -->
 
-- 6-axis toolpaths: Extend 3-axis motion with an orientation vector or normal field per point. This is required in robotic or multi-DOF systems where tool orientation is dynamically controlled (e.g., Directed Energy Deposition with a robot arm).
+- 6-axis toolpaths: Represented as a 3 linear and 3 rotational values per point. This is required in robotic or multi-DOF systems where tool orientation is dynamically controlled (e.g., Directed Energy Deposition with a robot arm).
 
 Each axis mode introduces increasing geometric and processing complexity but allows for:
 
@@ -186,9 +189,9 @@ Each axis mode introduces increasing geometric and processing complexity but all
 
 - Deposition on curved or dynamically repositioned surfaces
 
-- Support for rotating or tilting recoaters and tool heads
+- Support for rotating or tilting buildplates, recoaters, or tool heads
 
-3MF supports both representations under the same <toolpathlayers> construct, allowing a consistent approach to synchronization, metadata assignment, and profile referencing.
+3MF supports both representations under the same <toolpathlayers> construct, allowing for a consistent approach to synchronization, metadata assignment, and profile referencing.
 
 ## 2.3 Interoperability and Use
 
@@ -216,7 +219,7 @@ A producer targeting a specific machine configuration:
 
 - MUST declare the required namespace(s) in the profile section.
 
-- SHOULD mark the associated extension as required within the 3MF package if it is essential for correct fabrication.
+- SHOULD mark the associated extension as required within the 3MF package if it is essential for correct fabrication.<!-- a little hung up on the "required" term, here -->
 
 - MAY combine standardized and custom parameters within the same profile, as long as the semantics are unambiguous.
 
@@ -224,7 +227,8 @@ A producer targeting a specific machine configuration:
 
 Consumers that do not recognize a machine-specific namespace:
 
- - MUST ignore unrecognized parameters unless the extension is declared as required, in which case the consumer MUST reject the job.
+ - MUST ignore unrecognized parameters unless the extension is declared as required, in which case the consumer MUST reject the job.<!-- ok, I think i see that this required is some how being specified in XML. I didn't know one could do that. -->
+
 
 - SHOULD provide a warning or fallback mechanism if partial interpretation is possible.
 
@@ -292,7 +296,7 @@ Element **\<tp:toolpathresource>**
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |
+| id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |<!-- why both id and uuid -->
 | uuid | **ST\_UUID** | required |  | Global unique identifier . |
 | unitfactor | **ST\_UUID** | required |  | Unit scaling factor to be applied to toolpath coordinates. In millimeters. |
 | toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
@@ -310,14 +314,14 @@ Element **\<tp:toolpathprofile>**
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
 | uuid | **ST\_UUID** | required |   | Unique identifier for this profile |
-| name   | **ST\_String** | required |   | Name for this profile. Must be unique in the toolpath. |
+| name   | **ST\_String** | required |   | Name for this profile. Must be unique in the toolpath. | <!-- why is name required. This seems restrictive. -->
 | laserpower | **ST\_PositiveNumber** | optional | | Laser processes: specifies the power of the laser used, measured in W. |
 | laserspeed   | **ST\_PositiveNumber** | optional   |   | Laser processes: speed at which the projected laser spot moves while marking, measured in mm/s |
 | jumpspeed   | **ST\_PositiveNumber** | optional   |   | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_PositiveNumber** | optional   |   | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
 | laserindex | **ST\_Integer** | optional  |   | Laser processes: ID of the laser to be used. |
 | depositionspeed   | **ST\_PositiveNumber** | optional   |   | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
-
+<!-- many deposition based parameters are missing. Also, laser doesn't make sense for FFF, but power, and different speeds do. As well as flow rate (I guess this is depositionspeed -->
 The \<toolpathprofile\>-elements are used to specify the properties of a laser melting or deposition process. This specification declares the above list of generic values to use. A producer MUST ensure that all necessary profile values are properly declared for a specific application, or as enforced by a profile codec.
 
 In case of a custom profile value, the name MUST be namespaced with a properly defined XML namespace.
