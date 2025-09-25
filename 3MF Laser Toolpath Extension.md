@@ -133,18 +133,8 @@ Consumers MAY choose to recalculate or reinterpret the toolpath data, but they M
 
 The goal of this extension is to offer a structured, vendor-neutral, and scalable foundation for toolpath data that can bridge the gap between 3D geometry and machine execution, supporting the evolving ecosystem of industrial and open-source additive manufacturing systems.
 
-The producer of a 3MF document with the toolpath extension MUST also include the production extension as required. A consumer of the toolpath extension MUST  also understand the production extension in the document. This ensures the availability of proper referencable UUIDs throughout the document.
+The producer of a 3MF document with the toolpath extension MUST also include the production extension as required. A consumer of the toolpath extension MUST  also understand the production extension in the document. This ensures the availability of proper referenceable UUIDs throughout the document.
 
-
-##### Figure 2-1: Overview of model XML structure of 3MF with toolpath additions.
-
-#####
-![Overview of model XML structure of 3MF with toolpath additions](images/slice.png)
-
-##### Figure 2-2: Overview of model XML structure of the toolpathlayer document.
-
-#####
-![Overview of model XML structure of the toolpathlayer document](images/toolpath/toolpathlayer.png) <!--MISSING-->
 
 # Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.
 
@@ -160,7 +150,7 @@ Planar toolpaths describe geometry and process instructions that are confined to
 
 - Selective Laser Sintering (SLS)
 
-- Fused Filament Fabrication (FFF)<!-- I think it's a mistake to not include this, since most printers (granted they are hobbyist printers) are of this type. -->
+- Fused Filament Fabrication (FFF)
 
 
 Each layer consists of one or more 2D geometric primitives such as loops, polylines, hatches, arcs, and stripes. These are defined in the XY-plane and associated with a Z-height. This representation provides high resolution in XY and discrete control in Z, aligning closely with the native processing model of many industrial AM systems.
@@ -219,7 +209,7 @@ A producer targeting a specific machine configuration:
 
 - MUST declare the required namespace(s) in the profile section.
 
-- SHOULD mark the associated extension as required within the 3MF package if it is essential for correct fabrication.<!-- a little hung up on the "required" term, here -->
+- SHOULD mark the associated extension as required within the 3MF package if it is essential for correct fabrication.
 
 - MAY combine standardized and custom parameters within the same profile, as long as the semantics are unambiguous.
 
@@ -227,7 +217,7 @@ A producer targeting a specific machine configuration:
 
 Consumers that do not recognize a machine-specific namespace:
 
- - MUST ignore unrecognized parameters unless the extension is declared as required, in which case the consumer MUST reject the job.<!-- ok, I think i see that this required is some how being specified in XML. I didn't know one could do that. -->
+ - MUST ignore unrecognized parameters unless the extension is declared as required, in which case the consumer MUST reject the job.
 
 
 - SHOULD provide a warning or fallback mechanism if partial interpretation is possible.
@@ -298,10 +288,10 @@ Element **\<tp:toolpathresource>**
 | --- | --- | --- | --- | --- |
 | id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |<!-- why both id and uuid -->
 | uuid | **ST\_UUID** | required |  | Global unique identifier . |
-| unitfactor | **ST\_UUID** | required |  | Unit scaling factor to be applied to toolpath coordinates. In millimeters. |
+| unitfactor | **ST\_Number** | required |  | Unit scaling factor to be applied to toolpath coordinates. In millimeters. |
 | toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
 
-## Chapter 4.1 Toolpath profiles
+## 4.1 Toolpath profiles
 
 ![Toolpath Profiles XML Structure](images/toolpathprofiles.png)
 
@@ -311,28 +301,76 @@ The \<toolpathprofiles\> element contains list of toolpath profiles that allow a
 
 Element **\<tp:toolpathprofile>**
 
-| Name   | Type   | Use   | Default   | Annotation |
+| Name   | Type   | Use   | Technology class | Annotation |
 | --- | --- | --- | --- | --- |
 | uuid | **ST\_UUID** | required |   | Unique identifier for this profile |
 | name   | **ST\_String** | required |   | Name for this profile. Must be unique in the toolpath. | <!-- why is name required. This seems restrictive. -->
-| laserpower | **ST\_PositiveNumber** | optional | | Laser processes: specifies the power of the laser used, measured in W. |
-| laserspeed   | **ST\_PositiveNumber** | optional   |   | Laser processes: speed at which the projected laser spot moves while marking, measured in mm/s |
-| jumpspeed   | **ST\_PositiveNumber** | optional   |   | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
-| laserfocus   | **ST\_PositiveNumber** | optional   |   | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
-| laserindex | **ST\_Integer** | optional  |   | Laser processes: ID of the laser to be used. |
-| depositionspeed   | **ST\_PositiveNumber** | optional   |   | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
-<!-- many deposition based parameters are missing. Also, laser doesn't make sense for FFF, but power, and different speeds do. As well as flow rate (I guess this is depositionspeed -->
+| laserpower | **ST\_PositiveNumber** | optional | lpbf | Laser processes: specifies the power of the laser used, measured in W. |
+| laserspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while marking, measured in mm/s |
+| jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
+| laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
+| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. |
+| depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
+| beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
+| beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
+
 The \<toolpathprofile\>-elements are used to specify the properties of a laser melting or deposition process. This specification declares the above list of generic values to use. A producer MUST ensure that all necessary profile values are properly declared for a specific application, or as enforced by a profile codec.
 
 In case of a custom profile value, the name MUST be namespaced with a properly defined XML namespace.
 
 
-## Chapter 4.2 Toolpath profile modifiers
+## 4.2 Toolpath profile modifiers
 
-TODO
+![Toolpath Modifier XML structure](images/modifier.png)
 
-## Chapter 4.3 Toolpath layers
+Element **\<tp\:modifier>**
 
+ Modifiers enable granular control without duplicating full profiles.
+
+The **\<tp\:modifier>** element refines a parent **\<tp\:toolpathprofile>** by defining how one numeric profile attribute MAY be overridden *per geometry element* (e.g., per hatch line) or as a (linear or non-linear gradient) on a geometry element. The override is specified by a normalized scalar factor on those elements:
+
+* One scalar factor for a constant override on the element
+* Two scalar factors for a linear override on the element. This specifies a linear gradient from the start point to the end point.
+* Two scalar factors plus a list of increasing internal support points for a non-linear override on the element. This allows to give a piecewise linear curve on an element with normalized values between 0 and 1 that map to the pointwise override.
+
+
+
+A **\<tp\:modifier>**:
+
+* **MUST** be a direct child of **\<tp\:toolpathprofile>**.
+* **MUST** reference an attribute that already exists on the parent **\<tp\:toolpathprofile>** (including namespaced attributes).
+* **MUST** apply only to attributes with numeric value types (integer or floating-point).
+* **MUST** define a closed range \[**minvalue**, **maxvalue**] in the same units as the target attribute.
+* **MAY** be declared multiple times in a profile, but **at most one** modifier **MUST** target a given attribute within that profile.
+
+### Attributes
+
+| Name      | Type                 | Use      | Default | Annotation                                                                                                                                                              |
+| --------- | -------------------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| attribute | **ST\_String**       | required |         | Name of the parent profile attribute to override. MAY be namespaced (e.g., `skywriting:mode`). The named attribute **MUST** exist on the parent element and be numeric. |
+| type      | **ST\_ModifierType** | required |         | Override rule. One of `constant`, `linear`, `nonlinear`.                                                |
+| minvalue  | **ST\_Number**       | required |         | Lower bound of the allowed/targetable value range for the attribute. Units MUST match the attribute. MUST be smaller than maxvalue.  |
+| maxvalue  | **ST\_Number**       | required |         | Upper bound of the allowed/targetable value range for the attribute. Units MUST match the attribute. MUST be larger than minvalue. |
+| factor    | **ST\_ModifierFactor** | required |         | Factor identifier. Allowed values are `"e"`, `"f"`, `"g"` and `"h"`. These correspond to per-segment override factors defined later in the layer data. |
+
+
+>**Note:** The 3MF Toolpath specification deliberately restricts the applicable amount of modifiers per profile to four with a prescribed naming scheme. This allows implementers to find efficient data representations without taking too many special cases into consideration.
+
+>**Note:** Many consumer applications do not have the technical capability to support modifiers at all, only on certain profile attributes or only certain modification types like constant overrides. The structure as defined in the 3MF specification allows consumers to check before printing.
+
+While loading a 3MF Toolpath file, any consumer MUST run a sanity check of all profile modifications in the document, and MUST reject any document that contains any modifier that is not supported by the consumer. 
+
+A producer MUST obey the following rules:
+
+- For all override types, a toolpath layer geometry element may contain attributes `"e"`,`"f"`, `"g"`, `and "h"` for the constant case.
+
+- For linear and nonlinear override types, a toolpath layer geometry element may _instead_ contain attributes `"e1"`,`"e2"`, `"f1"`,`"f2"`, `"g1"`, `"g2"`, and `"h1"`, `"h2"` for the start respective end point of the element.
+
+- For non-linear types, an element may _in addition_ contain support points to specify a 0-1 parametrized non-linear curve on the element.
+
+- No element may contain an override factor data that is more granular than its specified modifier type.
+
+## 4.3 Toolpath layers
 
 ![Toolpath Layers XML Structure](images/toolpathlayers.png)
 
@@ -349,15 +387,300 @@ Element **\<tp:toolpathlayer>**
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| ztop | **ST\_PositiveInteger** | required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger than zbottom, as well as the ztop of the previous layer. |
+| ztop | **ST\_PositiveInteger** | **required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger than zbottom, as well as the ztop of the previous layer. |
 
 
-## Chapter 2.4 Custom Toolpath Metadata
+## 4.4 Custom Toolpath Metadata
+
+Element **\<tp\:toolpathdata>**
+
+The **\<tp\:toolpathdata>** container provides a safe, vendor-neutral place to embed *producer-generated metadata* about a toolpath. It is intended for provenance, slicer settings snapshots, QA annotations, simulation results, or workflow tags that do **not** alter the normative execution semantics of the toolpath unless the extension is marked as required.
+
+Child elements MUST be qualified with a namespace that is **not** any official 3MF Extension namespace (like core or production) . Producers MUST declare such namespaces at the **\<model>** element.
+
+Within **\<tp\:toolpathdata>**, each vendor (or workflow) **MAY** define an arbitrary, well-formed XML subtree (elements, attributes, text). Sibling subtrees from different namespaces may coexist.
+
+> **Note:** This specification deliberately treats the content model as open to maximize interoperability. The toolpathdata subtree is metadata only; its interpretation is outside the scope of this extension unless separately standardized by another extension and marked as required.
+
+#### Security and parsing requirements
+
+To keep 3MF packages self-contained and deterministic, consumers and producers MUST observe the following for all content under **\<tp\:toolpathdata>**:
+
+* **No externalization.** Content MUST NOT cause dereferencing of external resources. This includes DTDs, external entities, XInclude, external schemas fetched at parse time, processing instructions with retrieval semantics, or URI/IRI attributes intended to be fetched at load time.
+* **No CDATA.** Producers MUST NOT use `<![CDATA[ ... ]]>` sections; plain character data MUST be used instead.
+* **No binary payloads.** Large binary data (e.g., images, logs) MUST NOT be embedded. If binary data is essential, it MAY be stored as a separate OPC part with an explicit relationship from **\<tp\:toolpathresource>** (outside of **\<tp\:toolpathdata>**) per OPC rules.
+* **Well-formedness only.** Content MUST be well-formed XML. Validation of vendor schemas is optional; consumers MAY process child content with lax validation.
+* **Determinism.** Child content MUST NOT instruct the consumer to execute scripts or transform/modify the package at load time.
+
+#### Producer requirements
+
+* Producers MAY add any number of namespaced child elements under **\<tp\:toolpathdata>**.
+* If metadata is _essential_ to fabrication correctness, producers MUST expose it through a standardized extension or profile codec and MUST mark that extension as *required* at the **\<model>** level. If a metadata namespace is not required, the associated custom metadata alone MUST NOT be relied upon to change execution.
+* Producers SHOULD keep metadata concise and human-auditable (e.g., key–value elements or small trees), and SHOULD document their namespaces in a proper maintained specification document..
+
+#### Consumer requirements
+
+* Consumers that do not recognize a child namespace MUST ignore it without error and MUST preserve it on read/modify/write round-trips.
+* Consumers MUST enforce the prohibitions listed above. If violated, the document MUST be rejected.
+* Consumers MAY surface the metadata to users (e.g., as read-only key–value views) and MAY implement vendor-specific enrichments where available.
+
+
+#### Example (informative)
+
+```xml
+<tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868" unitfactor="0.001">
+  <tp:toolpathdata>
+    <mycompany:testmetadata>
+      <mycompany:toolpathinfo used_compensation_mode="simple" machine_model="MySLM7000"/>
+    </mycompany:testmetadata>
+  </tp:toolpathdata>
+  <!-- ... profiles and layers ... -->
+</tp:toolpathresource>
+```
+
+> **Note:** The example shows a single vendor block. Multiple independent blocks (e.g., `<qa:report>…</qa:report>`, `<sim:results>…</sim:results>`) may be included side-by-side under **\<tp\:toolpathdata>**.
 
 
 
 
 # Part II. Layer Data
+
+This Part defines the representation of a toolpath layer and the rules for interpreting it. Unless noted otherwise, all coordinates are **integer device units** that MUST be converted to millimeters by multiplying with the parent **\<tp\:toolpathresource>**’s `unitfactor` (see Part I). Element and attribute names are case-sensitive.
+
+Execution order of geometry MUST be the document order. Consumers MUST NOT reorder segments, 
+
+# Chapter 1 - Layer ASCII XML Structure
+
+Element **\<layer>**
+
+![Layer XML structure](images/layerxml.png)
+
+* **Namespace (default):** `http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05`
+* **Other namespaces:** Producers MAY declare additional namespaces for vendor metadata (e.g., `mycompany:`) or process attributes (e.g., `skywriting:`). A separate `bin:` namespace is reserved for a Binary Encoding extension.
+
+Consumers MUST ignore unrecognized elements and attributes in namespaces other than the above default, except where this Part explicitly requires rejection.
+
+## 1.1. References to Parts and Profiles
+
+### 1.1.1 Parts
+
+![Layer Parts XML Structure](images/layerparts.png)
+
+**Element \<parts>**
+
+Provides local identifiers for build items referenced by geometry.
+
+**Child element \<part>**
+
+| Name | Type                    | Use      | Annotation                                                                     |
+| ---- | ----------------------- | -------- | ------------------------------------------------------------------------------ |
+| id   | **ST\_PositiveInteger** | required | Identifier unique **within the layer**.                                        |
+| uuid | **ST\_UUID**            | required | UUID of the referenced build item present in the package. |
+
+Segments MUST reference a part via an integer `partid`. If any segment does refer to a `partid` not specified the same layer, the consumer **MUST** reject the layer.
+
+> **Note:** The `partid` is purposeful not guaranteed to be globally unique to easy implementation.
+
+### 1.1.2 Profiles
+
+![Layer Profiles XML Structure](images/layerprofiles.png)
+
+**Element \<profiles>**
+
+Maps local identifiers to Toolpath Profiles defined in the parent **\<tp\:toolpathresource>**.
+
+**Child element \<profile>**
+
+| Name | Type                    | Use      | Annotation                                                                                             |
+| ---- | ----------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| id   | **ST\_PositiveInteger** | required | Identifier unique **within the layer**.                                                                |
+| uuid | **ST\_UUID**            | required | UUID of a **\<tp\:toolpathprofile>** declared under the parent resource’s **\<tp\:toolpathprofiles>**. |
+
+Each segment MUST specify `profileid`. If any segment does refer to a `profileid` not specified the same layer, the consumer **MUST** reject the layer.
+
+---
+
+## 1.2. Segment Data
+
+![Segments XML Structure](images/layersegments.png)
+
+**Element \<segments>**
+
+Contains one or more **\<segment>** elements. Segments build a common wrapper class for types of toolpath geometry, and derive into specialist XML nodes, which then give proper information about.
+
+All segments are supposed to be executed sequentially in the order within the **\<segments>** element. For parallel processing, see the chapter below.
+
+
+**Element \<segment>**
+
+
+| Name      | Type                       | Use      | Default | Annotation                                                            |
+| --------- | -------------------------- | -------- | ------- | --------------------------------------------------------------------- |
+| type      | **ST\_String**             | required |         | One of `loop`, `polyline`, `hatch`.                                   |
+| profileid | **ST\_PositiveInteger**    | required |         | Resolves via **\<profiles>** (§2.2).                                  |
+| partid    | **ST\_PositiveInteger**    | optional |         | Resolves via **\<parts>** (§2.1).                                     |
+| tag       | **ST\_NonNegativeInteger** | optional |         | Producer-defined grouping or ordering hint. Consumers **MAY** ignore. |
+
+A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces of a layer XML, or reject the layer.
+
+## 1.3. Planar Segment Data
+
+
+Planar segments describe marking geometry in the XY plane of the layer. In this case Z is implied by the associated **\<tp\:toolpathlayer>** in the parent resource.
+
+Planar segment elements MUST NOT be used, if the **\<tp\:toolpathresource>**'s `toolpathtype` is not equal to `planar`.
+
+### 1.3.1 Children of Segment
+
+The _type_ attribute of a segment determines its acceptable XML child nodes. 
+
+**Child \<point> (planar)**
+
+![Layer Point XML Structure](images/layerpoint.png)
+
+For type `loop` and `polyline`, the segment MUST contain a non-empty list planar points.
+
+| Name      | Type            | Use      | Annotation                                                                                 |
+| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
+| x         | **ST\_Integer** | required | X coordinate (device units).                                                               |
+| y         | **ST\_Integer** | required | Y coordinate (device units).                                                               |
+| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the line that the point closes. Tags have no direct meaning, but MAY be referenced from Metadata. |
+| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `e1` or `e2` are present. |
+| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+
+
+**Child \<hatch> (planar)**
+
+![Layer Hatch XML Structure](images/layerhatch.png)
+
+For type `hatch`, the segment MUST contain a non-empty list planar hatches.
+
+| Name      | Type            | Use      | Annotation                                                                                 |
+| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
+| x1         | **ST\_Integer** | required | X coordinate of the first hatch point (device units).                                                               |
+| y1         | **ST\_Integer** | required | Y coordinate of the first hatch point (device units).                                                               |
+| x2         | **ST\_Integer** | required | X coordinate of the second hatch point (device units).                                                               |
+| y2         | **ST\_Integer** | required | Y coordinate of the second hatch point (device units).                                                               |
+| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the hatch line. Tags have no direct meaning, but MAY be referenced from Metadata. |
+| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the hatch line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `e1` or `e2` are present. |
+| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+
+
+**Child \<point3d> (3axis)**
+
+![Layer Point 3D XML Structure](images/layerpoint3d.png)
+
+For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
+
+| Name      | Type            | Use      | Annotation                                                                                 |
+| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
+| x         | **ST\_Integer** | required | X coordinate (device units).                                                               |
+| y         | **ST\_Integer** | required | Y coordinate (device units).                                                               |
+| z         | **ST\_Integer** | required | Z coordinate (device units).                                                               |
+| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the line that the point closes. Tags have no direct meaning, but MAY be referenced from Metadata. |
+| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `e1` or `e2` are present. |
+| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+
+
+**Child \<point6d> (6axis)**
+
+![Layer Point 6D XML Structure](images/layerpoint6d.png)
+
+For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
+
+| Name      | Type            | Use      | Annotation                                                                                 |
+| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
+| x         | **ST\_Integer** | required | X coordinate (device units).                                                               |
+| y         | **ST\_Integer** | required | Y coordinate (device units).                                                               |
+| z         | **ST\_Integer** | required | Z coordinate (device units).                                                               |
+| i         | **ST\_Number** | required | Quaternion `i` value of a reference frame at the point.                                                               |
+| j         | **ST\_Number** | required | Quaternion `j` value of a reference frame at the point.                                                               |
+| k         | **ST\_Number** | required | Quaternion `k` value of a reference frame at the point.                                                               |
+| w         | **ST\_Number** | required | Quaternion `w` value of a reference frame at the point.                                                               |
+| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the line that the point closes. Tags have no direct meaning, but MAY be referenced from Metadata. |
+| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `e1` or `e2` are present. |
+| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+
+
+### 1.3.2 Polyline Segment (planar)
+
+Open polyline executed as a continuous mark. 
+
+**Children**
+
+* Two or more **\<point>** element (MUST be ≥ 2).
+
+
+### 1.3.2 Loop Segment (planar)
+
+Closed polygon executed as a continuous mark. If the last point in the list is not the equal the closing segment from the last point to the first is **implied**. 
+
+**Children**
+
+* Two or more **\<point>** element (MUST be ≥ 3).
+
+**Child \<point> (planar)**
+
+| Name      | Type            | Use      | Annotation                                                                                 |
+| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
+| x         | **ST\_Integer** | required | X coordinate (device units).                                                               |
+| y         | **ST\_Integer** | required | Y coordinate (device units).                                                               |
+| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. Tags have no direct meaning, but can be referenced from Metadata. |
+| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
+| k         | **ST\_ModifierScale** | optional | Scale factor for a constant `k` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
+
+
+### 1.3.3 Hatch Segment (planar)
+
+Set of independent straight lines. Each line is executed separately; travel between lines is a **jump**.
+
+**Children**
+
+* One or more **\<hatch>**.
+
+**Child \<hatch>**
+
+| Name      | Type                       | Use      | Annotation                                                   |
+| --------- | -------------------------- | -------- | ------------------------------------------------------------ |
+| x1    | **ST\_Integer**            | required | x coordinate of the start point of the hatch (in device units).                                  |
+| y1    | **ST\_Integer**            | required | y coordinate of the start point of the hatch (in device units).                                  |
+| x2    | **ST\_Integer**            | required | x coordinate of the start point of the hatch (in device units).                                  |
+| y2    | **ST\_Integer**            | required | y coordinate of the start point of the hatch (in device units).                                  |
+| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for this line.                       |
+| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the full hatch. MUST be a number value between 0 and 1. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a potential `g` modifier at this point. MUST be a number value between 0 and 1. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a potential `h` modifier at this point. MUST be a number value between 0 and 1. |
+| k         | **ST\_ModifierScale** | optional | Scale factor for a potential `k` modifier at this point. MUST be a number value between 0 and 1. |
+
+---
+
+
 
 # Part III. Appendixes
 
@@ -435,49 +758,6 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018
 
 # Appendix D: Example file
 
-## 3D model
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<model xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" unit="millimeter" xmlns:b="http://schemas.microsoft.com/3dmanufacturing/beamlattice/2017/02" requiredextensions="b">
-    <resources>
-        <s:slicestack>
-            <slice ztop="10" l:toolpath="/toolpath/layer1.xml">
-                <s:vertices>
-                    <s:vertex x="30" y="30"/>
-                    <s:vertex x="70" y="30"/>
-                    <s:vertex x="70" y="70"/>
-                    <s:vertex x="30" y="70"/>
-                </s:vertices>
-                <s:polygon startv="0">
-                    <s:segment v2="1"/>
-                    <s:segment v2="2"/>
-                    <s:segment v2="3"/>
-                    <s:segment v2="0"/>
-                </s:polygon>
-            <s:slice/>
-        <s:/slicestack>
-        <object id="1" name="Box" partnumber="e1ef01d4-cbd4-4a62-86b6-9634e2ca198b" type="model">
-            <mesh>
-                <vertices>
-                    <vertex x="45.00000" y="55.00000" z="55.00000"/>
-                    <vertex x="45.00000" y="45.00000" z="55.00000"/>
-                    <vertex x="45.00000" y="55.00000" z="45.00000"/>
-                    <vertex x="45.00000" y="45.00000" z="45.00000"/>
-                    <vertex x="55.00000" y="55.00000" z="45.00000"/>
-                    <vertex x="55.00000" y="55.00000" z="55.00000"/>
-                    <vertex x="55.00000" y="45.00000" z="55.00000"/>
-                    <vertex x="55.00000" y="45.00000" z="45.00000"/>
-                </vertices>
-                <triangles>
-                    <vertex x="45.00000" y="55.00000" z="55.00000"/>
-                </triangles>
-            </mesh>
-        </object>
-    </resources>
-    <build>
-        <item objectid="1"/>
-    </build>
-</model>
 ```
 
 ## Toolpathlayer

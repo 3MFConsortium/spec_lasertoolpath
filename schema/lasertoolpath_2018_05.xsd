@@ -12,24 +12,339 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018
   ST_: Simple types 
    
   ]]></xs:documentation> 
-	</xs:annotation> 
-	<!-- Complex Types --> 
-	<xs:complexType name="CT_Slice">
-		<xs:sequence> 
-			<xs:element ref="vertices" minOccurs="0" /> 
-			<xs:element ref="polygon" minOccurs="0" maxOccurs="2147483647"/>
-			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/> 
-		</xs:sequence> 
-		<xs:attribute name="ztop" type="ST_Number" use="required"/> 
-		<xs:attribute name="toolpath" type="ST_UriReference" use="optional"/>
+	</xs:annotation>
+
+	<xs:complexType name="CT_Modifier">
+		<xs:attribute name="attribute" type="ST_String" use="required"/>
+		<xs:attribute name="type" type="ST_ModifierType" use="required"/>
+		<xs:attribute name="minvalue" type="ST_Number" use="required"/>
+		<xs:attribute name="maxvalue" type="ST_Number" use="required"/>
+		<xs:attribute name="factor" type="ST_ModifierFactor" use="required"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
+
+	<xs:complexType name="CT_ToolpathProfile">
+		<xs:sequence>
+			<xs:element ref="modifier" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+		<xs:attribute name="name" type="ST_Name" use="required"/>
+		<xs:attribute name="laserpower" type="ST_Number" use="optional"/>
+		<xs:attribute name="laserspeed" type="ST_Number" use="optional"/>
+		<xs:attribute name="jumpspeed" type="ST_Number" use="optional"/>
+		<xs:attribute name="laserfocus" type="ST_Number" use="optional"/>
+		<xs:attribute name="laserindex" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="depositionspeed" type="ST_Number" use="optional"/>
+		<xs:attribute name="beadwidth" type="ST_Number" use="optional"/>
+		<xs:attribute name="beadheight" type="ST_Number" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<!-- Complex Types -->
+	<xs:complexType name="CT_ToolpathProfiles">
+		<xs:sequence>
+			<xs:element ref="toolpathprofile" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_ToolpathLayer">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="ztop" type="ST_PositiveInteger" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_ToolpathLayers">
+		<xs:sequence>
+			<xs:element ref="layer" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="zbottom" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_ToolpathResource">
+		<xs:sequence>
+			<xs:element ref="toolpathprofiles" minOccurs="1" maxOccurs="1"/>
+			<xs:element ref="toolpathlayers" minOccurs="1" maxOccurs="1"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="id" type="ST_ResourceID" use="required"/>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+		<xs:attribute name="unitfactor" type="ST_Number" use="required"/>
+		<xs:attribute name="toolpathtype" type="ST_Number" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_Layer">
+		<xs:sequence>
+			<xs:element ref="parts" minOccurs="1" maxOccurs="1"/>
+			<xs:element ref="profiles" minOccurs="1" maxOccurs="1"/>
+			<xs:element ref="data" minOccurs="1" maxOccurs="1"/>
+			<xs:element ref="segments" minOccurs="1" maxOccurs="1"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerParts">
+		<xs:sequence>
+			<xs:element ref="part" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerPart">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="id" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+
+	<xs:complexType name="CT_LayerProfile">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="id" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerProfiles">
+		<xs:sequence>
+			<xs:element ref="profile" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerSegment">
+		<xs:sequence>
+			<xs:element ref="point" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:element ref="hatch" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:element ref="point3d" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:element ref="point6d" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="type" type="ST_LayerSegmentType" use="required"/>
+		<xs:attribute name="profileid" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="partid" type="ST_PositiveInteger" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerData">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerSegments">
+		<xs:sequence>
+			<xs:element ref="segment" minOccurs="0" maxOccurs="2147483647"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerPoint">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="x" type="ST_Number" use="required"/>
+		<xs:attribute name="y" type="ST_Number" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attribute name="e" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h2" type="ST_ModifierFactor" use="optional"/>
+
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+
+	<xs:complexType name="CT_LayerPoint3D">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="x" type="ST_Number" use="required"/>
+		<xs:attribute name="y" type="ST_Number" use="required"/>
+		<xs:attribute name="z" type="ST_Number" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attribute name="e" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h2" type="ST_ModifierFactor" use="optional"/>
+
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+
+	<xs:complexType name="CT_LayerPoint6D">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="x" type="ST_Number" use="required"/>
+		<xs:attribute name="y" type="ST_Number" use="required"/>
+		<xs:attribute name="z" type="ST_Number" use="required"/>
+		<xs:attribute name="i" type="ST_Number" use="required"/>
+		<xs:attribute name="j" type="ST_Number" use="required"/>
+		<xs:attribute name="k" type="ST_Number" use="required"/>
+		<xs:attribute name="w" type="ST_Number" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attribute name="e" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h2" type="ST_ModifierFactor" use="optional"/>
+
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:complexType name="CT_LayerHatch">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+		</xs:sequence>
+		<xs:attribute name="x1" type="ST_Number" use="required"/>
+		<xs:attribute name="y1" type="ST_Number" use="required"/>
+		<xs:attribute name="x2" type="ST_Number" use="required"/>
+		<xs:attribute name="y2" type="ST_Number" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attribute name="e" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="e2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="f2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="g2" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h1" type="ST_ModifierFactor" use="optional"/>
+		<xs:attribute name="h2" type="ST_ModifierFactor" use="optional"/>
+
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
 	<!-- Simple Types -->
 	<xs:simpleType name="ST_UriReference"> 
 		<xs:restriction base="xs:anyURI"> 
 			<xs:pattern value="/.*"/> 
 		</xs:restriction> 
 	</xs:simpleType>
-	<!-- Elements --> 
-	<xs:element name="slice" type="CT_Slice"/>
+
+	<xs:simpleType name="ST_Number">
+		<xs:restriction base="xs:double">
+			<xs:whiteSpace value="collapse"/>
+			<xs:pattern value="((\-|\+)?(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))((e|E)(\-|\+)?[0-9]+)?)"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ResourceID">
+		<xs:restriction base="xs:positiveInteger">
+			<xs:maxExclusive value="2147483648"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ResourceIndex">
+		<xs:restriction base="xs:nonNegativeInteger">
+			<xs:maxExclusive value="2147483648"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_Path">
+		<xs:restriction base="xs:string"> </xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ST_UUID">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ST_Name">
+		<xs:restriction base="xs:string">
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ST_String">
+		<xs:restriction base="xs:string">
+		</xs:restriction>
+	</xs:simpleType>
+
+
+	<xs:simpleType name="ST_PositiveInteger">
+		<xs:restriction base="xs:positiveInteger">
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ST_ModifierType">
+		<xs:restriction base="xs:string">
+		</xs:restriction>
+	</xs:simpleType>
+
+	
+	<xs:simpleType name="ST_LayerSegmentType">
+		<xs:restriction base="xs:string">
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ST_ModifierFactor">
+		<xs:restriction base="xs:string">
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ST_NonNegativeInteger">
+		<xs:restriction base="xs:nonNegativeInteger">
+		</xs:restriction>
+	</xs:simpleType>
+	<!-- Elements -->
+
+	<xs:element name="modifier" type="CT_Modifier" />
+	<xs:element name="toolpathprofile" type="CT_ToolpathProfile" />
+	<xs:element name="toolpathprofiles" type="CT_ToolpathProfiles" />
+	<xs:element name="toolpathlayer" type="CT_ToolpathLayer" />
+	<xs:element name="toolpathlayers" type="CT_ToolpathLayers" />
+	<xs:element name="toolpathresource" type="CT_ToolpathResource" />
+	<xs:element name="parts" type="CT_LayerParts" />
+	<xs:element name="profiles" type="CT_LayerProfiles" />
+	<xs:element name="data" type="CT_LayerData" />
+	<xs:element name="segments" type="CT_LayerSegments" />
+	<xs:element name="segment" type="CT_LayerSegment" />
+	<xs:element name="part" type="CT_LayerPart" />
+	<xs:element name="profile" type="CT_LayerProfile" />
+	<xs:element name="layer" type="CT_Layer" />
+	<xs:element name="point" type="CT_LayerPoint" />
+	<xs:element name="point3d" type="CT_LayerPoint" />
+	<xs:element name="point6d" type="CT_LayerPoint" />
+	<xs:element name="hatch" type="CT_LayerHatch" />
+
 </xs:schema>
