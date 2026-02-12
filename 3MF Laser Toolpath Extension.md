@@ -342,6 +342,7 @@ A **\<tp\:modifier>**:
 * **MUST** apply only to attributes with numeric value types (integer or floating-point).
 * **MUST** define a closed range \[**minvalue**, **maxvalue**] in the same units as the target attribute.
 * **MAY** be declared multiple times in a profile, but **at most one** modifier **MUST** target a given attribute within that profile.
+* Attribute modifications on a hatch line are supposed to be be parametrized in _position_ (i.e. geometric), but not in _time_.
 
 ### Attributes
 
@@ -359,6 +360,8 @@ A **\<tp\:modifier>**:
 >**Note:** Many consumer applications do not have the technical capability to support modifiers at all, only on certain profile attributes or only certain modification types like constant overrides. The structure as defined in the 3MF specification allows consumers to check before printing.
 
 While loading a 3MF Toolpath file, any consumer MUST run a sanity check of all profile modifications in the document, and MUST reject any document that contains any modifier that is not supported by the consumer. 
+
+>**Note:** The intended primary use case of modifiers is to modulate laser properties that are location-dependent (like power ramps), and not influencing the movement trajectory directly (like speed ramps would). This specification allows both use cases, but a producer should be aware that the latter might be rejected by many consumers.
 
 A producer MUST obey the following rules:
 
@@ -412,9 +415,9 @@ Given a parent element with start value `f1`, end value `f2`, and _n_ **\<sub>**
 A hatch with a nonlinear `f` modifier that ramps up to full power in the first 20%, holds steady, then ramps down in the last 20%:
 
 ```xml
-<hatch x1="0" y1="0" x2="10000" y2="0" f1="0.0" f2="0.0">
-  <sub t="0.2" f="1.0"/>
-  <sub t="0.8" f="1.0"/>
+<hatch x1="0" y1="0" x2="10000" y2="0" f1="0.0" f2="0.5">
+  <sub t="0.2" f="0.8"/>
+  <sub t="0.8" f="0.6"/>
 </hatch>
 ```
 
@@ -437,7 +440,7 @@ Element **\<tp:toolpathlayer>**
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| ztop | **ST\_PositiveInteger** | **required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger than zbottom, as well as the ztop of the previous layer. |
+| ztop | **ST\_PositiveInteger** | **required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger or equal than zbottom, as well as the ztop of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the indented behavior.  |
 
 
 ## 4.4 Custom Toolpath Metadata
