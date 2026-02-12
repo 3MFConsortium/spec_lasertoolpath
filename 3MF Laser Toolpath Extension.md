@@ -366,9 +366,59 @@ A producer MUST obey the following rules:
 
 - For linear and nonlinear override types, a toolpath layer geometry element may _instead_ contain attributes `"e1"`,`"e2"`, `"f1"`,`"f2"`, `"g1"`, `"g2"`, and `"h1"`, `"h2"` for the start respective end point of the element.
 
-- For non-linear types, an element may _in addition_ contain support points to specify a 0-1 parametrized non-linear curve on the element.
+- For non-linear types, an element may _in addition_ contain **\<sub>** child elements to specify a 0-1 parametrized piecewise-linear curve on the element (see below).
 
 - No element may contain an override factor data that is more granular than its specified modifier type.
+
+### Nonlinear Override Support Points
+
+For modifiers with `type="nonlinear"`, geometry elements (`<hatch>` or `<point>`) MAY contain one or more **\<sub>** child elements. Each **\<sub>** element defines a support point on a piecewise-linear interpolation curve along the geometry element.
+
+**Element \<sub>**
+
+The **\<sub>** element specifies modifier factor values at a specific parametric position along its parent geometry element. The parametric position is normalized to the range \[0,&nbsp;1\], where 0 corresponds to the start of the element and 1 corresponds to the end.
+
+Together with the modifier factor values on the parent element (given as `e1`/`e2`, `f1`/`f2`, `g1`/`g2`, `h1`/`h2`), the **\<sub>** elements define a piecewise-linear curve. Interpolation between the start-point values, the support points, and the end-point values MUST be linear within each segment of the piecewise curve.
+
+| Name | Type                 | Use      | Annotation                                                                                                                     |
+| ---- | -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| t    | **ST\_Number**       | required | Parametric position along the parent element. MUST be strictly greater than 0 and strictly less than 1.                        |
+| e    | **ST\_ModifierScale** | optional | Override factor value for the `e` modifier at parametric position `t`. MUST be between 0 and 1.                                |
+| f    | **ST\_ModifierScale** | optional | Override factor value for the `f` modifier at parametric position `t`. MUST be between 0 and 1.                                |
+| g    | **ST\_ModifierScale** | optional | Override factor value for the `g` modifier at parametric position `t`. MUST be between 0 and 1.                                |
+| h    | **ST\_ModifierScale** | optional | Override factor value for the `h` modifier at parametric position `t`. MUST be between 0 and 1.                                |
+
+**Producer rules:**
+
+* Each **\<sub>** element MUST have a `t` attribute.
+* At least one of `e`, `f`, `g`, `h` MUST be present on each **\<sub>** element.
+* If multiple **\<sub>** elements are present, their `t` values MUST be strictly increasing in document order.
+* **\<sub>** elements MUST only be present when the parent element also carries linear-style factor attributes (`e1`/`e2`, `f1`/`f2`, `g1`/`g2`, `h1`/`h2`).
+* **\<sub>** elements MUST NOT appear on geometry elements whose associated profile modifier has `type` other than `nonlinear`.
+
+**Consumer rules:**
+
+* Consumers MUST interpolate linearly between consecutive support points (including the start and end values from the parent element).
+* If a **\<sub>** element is missing a factor attribute that the parent element provides (e.g., the parent has `f1`/`f2` but the **\<sub>** omits `f`), the consumer MUST linearly interpolate that factor as if the **\<sub>** were not present for that factor.
+
+**Interpolation model:**
+
+Given a parent element with start value `f1`, end value `f2`, and _n_ **\<sub>** elements with positions t&#x2081;,&nbsp;t&#x2082;,&nbsp;&hellip;,&nbsp;t&#x2099; and values v&#x2081;,&nbsp;v&#x2082;,&nbsp;&hellip;,&nbsp;v&#x2099;, the effective value at parametric position _p_ (0&nbsp;&le;&nbsp;p&nbsp;&le;&nbsp;1) is obtained by piecewise-linear interpolation over the sequence of control points:
+
+(0,&nbsp;f1),&ensp;(t&#x2081;,&nbsp;v&#x2081;),&ensp;(t&#x2082;,&nbsp;v&#x2082;),&ensp;&hellip;,&ensp;(t&#x2099;,&nbsp;v&#x2099;),&ensp;(1,&nbsp;f2)
+
+#### Example (informative)
+
+A hatch with a nonlinear `f` modifier that ramps up to full power in the first 20%, holds steady, then ramps down in the last 20%:
+
+```xml
+<hatch x1="0" y1="0" x2="10000" y2="0" f1="0.0" f2="0.0">
+  <sub t="0.2" f="1.0"/>
+  <sub t="0.8" f="1.0"/>
+</hatch>
+```
+
+This produces: linear ramp 0.0&nbsp;&rarr;&nbsp;1.0 over \[0,&nbsp;0.2\], constant 1.0 over \[0.2,&nbsp;0.8\], linear ramp 1.0&nbsp;&rarr;&nbsp;0.0 over \[0.8,&nbsp;1\].
 
 ## 4.3 Toolpath layers
 
@@ -519,6 +569,9 @@ All segments are supposed to be executed sequentially in the order within the **
 | type      | **ST\_String**             | required |         | One of `loop`, `polyline`, `hatch`.                                   |
 | profileid | **ST\_PositiveInteger**    | required |         | Resolves via **\<profiles>** (§2.2).                                  |
 | partid    | **ST\_PositiveInteger**    | optional |         | Resolves via **\<parts>** (§2.1).                                     |
+| laserindex | **ST\_Integer**           | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies. |
+| timeprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated execution time of this segment, in microseconds. This is the time the machine is expected to spend marking (exposing) the geometry contained in this segment. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
+| jumpprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated jump time to reach the start of this segment from the end of the preceding segment (or the machine origin for the first segment in a layer), in microseconds. This accounts for non-marking repositioning. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | tag       | **ST\_NonNegativeInteger** | optional |         | Producer-defined grouping or ordering hint. Consumers **MAY** ignore. |
 
 A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces of a layer XML, or reject the layer.
