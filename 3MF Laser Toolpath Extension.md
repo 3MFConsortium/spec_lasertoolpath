@@ -253,6 +253,12 @@ Each layer file contains geometry segments (e.g., loops, polylines, hatches) as 
 
 Each layer XML is referenced via an explicit OPC relationship from the main toolpath resource part. These relationships define the role, content type, and URI of each layer file. The root model (3dmodel.model) declares a relationship to the Toolpath Resource part, which in turn declares relationships to each layer.
 
+The OPC relationship type used to bind a toolpath resource part to each of its layer parts is:
+
+`http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath`
+
+The target of each such relationship MUST match the `path` attribute of the corresponding **\<tp\:toolpathlayer>** element (see [Chapter 4](#chapter-4-toolpath-resource-xml-structure)). The same relationship type is also used to bind any additional binary attachments referenced from the toolpath resource per OPC rules.
+
 This structure ensures:
 - Deterministic resolution of resource dependencies
 
@@ -441,6 +447,7 @@ Element **\<tp:toolpathlayer>**
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
 | ztop | **ST\_PositiveInteger** | **required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger or equal than zbottom, as well as the ztop of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the indented behavior.  |
+| path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath` declared from the **\<tp\:toolpathresource>** part (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
 
 
 ## 4.4 Custom Toolpath Metadata
@@ -608,7 +615,7 @@ For type `loop` and `polyline`, the segment MUST contain a non-empty list planar
 | e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
 | f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
 | g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
 
 
 **Child \<hatch> (planar)**
@@ -631,7 +638,7 @@ For type `hatch`, the segment MUST contain a non-empty list planar hatches.
 | e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
 | f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
 | g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
 
 
 **Child \<point3d> (3axis)**
@@ -653,14 +660,14 @@ For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
 | e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
 | f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
 | g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
 
 
 **Child \<point6d> (6axis)**
 
 ![Layer Point 6D XML Structure](images/layerpoint6d.png)
 
-For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
+For type `polyline6d`, the segment MUST contain a non-empty list 6axis points.
 
 | Name      | Type            | Use      | Annotation                                                                                 |
 | --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
@@ -679,7 +686,7 @@ For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
 | e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
 | f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
 | g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
 
 
 ### 1.3.2 Polyline Segment (planar)
@@ -691,7 +698,7 @@ Open polyline executed as a continuous mark.
 * Two or more **\<point>** element (MUST be ≥ 2).
 
 
-### 1.3.2 Loop Segment (planar)
+### 1.3.3 Loop Segment (planar)
 
 Closed polygon executed as a continuous mark. If the last point in the list is not the equal the closing segment from the last point to the first is **implied**. 
 
@@ -712,7 +719,7 @@ Closed polygon executed as a continuous mark. If the last point in the list is n
 | k         | **ST\_ModifierScale** | optional | Scale factor for a constant `k` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
 
 
-### 1.3.3 Hatch Segment (planar)
+### 1.3.4 Hatch Segment (planar)
 
 Set of independent straight lines. Each line is executed separately; travel between lines is a **jump**.
 
@@ -774,8 +781,8 @@ Set of independent straight lines. Each line is executed separately; travel betw
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?> 
-<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace" 
-targetNamespace="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018/05" elementFormDefault="unqualified" attributeFormDefault="unqualified" blockDefault="#all"> 
+<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace" 
+targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" elementFormDefault="unqualified" attributeFormDefault="unqualified" blockDefault="#all"> 
 	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd"/>
   <xs:annotation> 
 		<xs:documentation><![CDATA[   Schema notes: 
@@ -806,10 +813,13 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018
 
 # Appendix C. Standard Namespace
 
-| | |
+A single XML namespace is used for both the **\<tp\:toolpathresource>** structures (Part I) and the layer **\<layer>** structures (Part II). The OPC relationship type below is used to bind a toolpath resource part to its layer parts (and to any additional binary attachments).
+
+| Name | URI |
 | --- | --- |
-|LaserToolpath    |  [http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018/05](http://schemas.microsoft.com/3dmanufacturing/lasertoolpath/2018/05 ) |
-|LaserToolpathLayer | [http://schemas.microsoft.com/3dmanufacturing/lasertoolpathlayer/2018/05](http://schemas.microsoft.com/3dmanufacturing/lasertoolpathlayer/2018/05 ) |
+| Toolpath namespace (prefix `tp`) | [http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05](http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05) |
+| Toolpath OPC relationship type | `http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath` |
+| Binary Encoding namespace (prefix `bin`) | [http://schemas.microsoft.com/3dmanufacturing/binary/2023/05](http://schemas.microsoft.com/3dmanufacturing/binary/2023/05) |
 
 
 # Appendix D: Example file
