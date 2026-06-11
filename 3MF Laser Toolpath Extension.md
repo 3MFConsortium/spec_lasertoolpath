@@ -713,10 +713,10 @@ Closed polygon executed as a continuous mark. If the last point in the list is n
 | x         | **ST\_Integer** | required | X coordinate (device units).                                                               |
 | y         | **ST\_Integer** | required | Y coordinate (device units).                                                               |
 | tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. Tags have no direct meaning, but can be referenced from Metadata. |
+| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
 | f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
 | g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
 | h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
-| k         | **ST\_ModifierScale** | optional | Scale factor for a constant `k` modifier for the line that the point closes. The tag of the first point in the list will attach to the closure of the loop, should it be needed. MUST be a number value between 0 and 1. |
 
 
 ### 1.3.4 Hatch Segment (planar)
@@ -736,10 +736,10 @@ Set of independent straight lines. Each line is executed separately; travel betw
 | x2    | **ST\_Integer**            | required | x coordinate of the start point of the hatch (in device units).                                  |
 | y2    | **ST\_Integer**            | required | y coordinate of the start point of the hatch (in device units).                                  |
 | tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for this line.                       |
+| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the full hatch. MUST be a number value between 0 and 1. |
 | f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the full hatch. MUST be a number value between 0 and 1. |
-| g         | **ST\_ModifierScale** | optional | Scale factor for a potential `g` modifier at this point. MUST be a number value between 0 and 1. |
-| h         | **ST\_ModifierScale** | optional | Scale factor for a potential `h` modifier at this point. MUST be a number value between 0 and 1. |
-| k         | **ST\_ModifierScale** | optional | Scale factor for a potential `k` modifier at this point. MUST be a number value between 0 and 1. |
+| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the full hatch. MUST be a number value between 0 and 1. |
+| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the full hatch. MUST be a number value between 0 and 1. |
 
 ---
 
@@ -780,33 +780,340 @@ Set of independent straight lines. Each line is executed separately; travel betw
 ## Appendix B. 3MF XSD Schema
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?> 
-<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace" 
-targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" elementFormDefault="unqualified" attributeFormDefault="unqualified" blockDefault="#all"> 
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace"
+targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" elementFormDefault="qualified" attributeFormDefault="unqualified" blockDefault="#all">
 	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd"/>
-  <xs:annotation> 
-		<xs:documentation><![CDATA[   Schema notes: 
- 
-  Items within this schema follow a simple naming convention of appending a prefix indicating the type of element for references: 
- 
-  Unprefixed: Element names 
-  CT_: Complex types 
-  ST_: Simple types 
-   
-  ]]></xs:documentation> 
-	</xs:annotation> 
-	<!-- Complex Types --> 
-	<xs:complexType name="CT_Slice"> 
-		<xs:attribute name="toolpath" type="ST_UriReference" use="optional"/>
+	<xs:annotation>
+		<xs:documentation><![CDATA[   Schema notes:
+
+  This schema covers both parts of the Toolpath extension:
+   - Part II: the <toolpathresource> structure embedded in the 3D model document.
+   - Part I:  the <layer> ASCII XML structure stored in separate OPC parts.
+
+  Both parts share the same namespace
+  (http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05) and therefore
+  live in a single schema. In the model document the resource elements are used
+  with a prefix (e.g. tp:toolpathresource); in a layer part the elements are
+  used unprefixed with this namespace declared as the default.
+
+  Naming convention:
+  Unprefixed: Element names
+  CT_: Complex types
+  ST_: Simple types
+  AG_: Attribute groups
+
+  ]]></xs:documentation>
+	</xs:annotation>
+
+	<!-- ===================== Simple Types ===================== -->
+	<xs:simpleType name="ST_UriReference">
+		<xs:restriction base="xs:anyURI">
+			<xs:pattern value="/.*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_UUID">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ResourceID">
+		<xs:restriction base="xs:positiveInteger">
+			<xs:maxExclusive value="2147483648"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_String">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="1"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_Number">
+		<xs:restriction base="xs:double"/>
+	</xs:simpleType>
+	<xs:simpleType name="ST_PositiveNumber">
+		<xs:restriction base="xs:double">
+			<xs:minExclusive value="0.0"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_Integer">
+		<xs:restriction base="xs:int"/>
+	</xs:simpleType>
+	<xs:simpleType name="ST_PositiveInteger">
+		<xs:restriction base="xs:positiveInteger">
+			<xs:maxExclusive value="2147483648"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_NonNegativeInteger">
+		<xs:restriction base="xs:nonNegativeInteger">
+			<xs:maxExclusive value="2147483648"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ModifierScale">
+		<xs:restriction base="xs:double">
+			<xs:minInclusive value="0.0"/>
+			<xs:maxInclusive value="1.0"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ToolpathType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="planar"/>
+			<xs:enumeration value="3axis"/>
+			<xs:enumeration value="6axis"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ModifierType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="constant"/>
+			<xs:enumeration value="linear"/>
+			<xs:enumeration value="nonlinear"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_ModifierFactor">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="e"/>
+			<xs:enumeration value="f"/>
+			<xs:enumeration value="g"/>
+			<xs:enumeration value="h"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<!-- ===================== Attribute Groups ===================== -->
+	<!-- Per-point/per-hatch scale factors. The unindexed factors (e,f,g,h) apply
+	     to "constant" modifiers; the indexed pairs (x1/x2) apply to "linear"
+	     modifiers, giving the value at the start and end of the line. -->
+	<xs:attributeGroup name="AG_ModifierFactors">
+		<xs:attribute name="e" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="f" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="g" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="h" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="e1" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="e2" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="f1" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="f2" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="g1" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="g2" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="h1" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="h2" type="ST_ModifierScale" use="optional"/>
+	</xs:attributeGroup>
+
+	<!-- ===================== Part II: Toolpath Resource ===================== -->
+	<xs:element name="toolpathresource" type="CT_Toolpath"/>
+	<xs:complexType name="CT_Toolpath">
+		<xs:sequence>
+			<xs:element ref="toolpathprofiles" minOccurs="0" maxOccurs="1"/>
+			<xs:element ref="toolpathlayers" minOccurs="0" maxOccurs="1"/>
+			<xs:element ref="toolpathdata" minOccurs="0" maxOccurs="1"/>
+		</xs:sequence>
+		<xs:attribute name="id" type="ST_ResourceID" use="required"/>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+		<xs:attribute name="unitfactor" type="ST_Number" use="required"/>
+		<xs:attribute name="toolpathtype" type="ST_ToolpathType" use="optional" default="planar"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
-	<!-- Simple Types -->
-	<xs:simpleType name="ST_UriReference"> 
-		<xs:restriction base="xs:anyURI"> 
-			<xs:pattern value="/.*"/> 
-		</xs:restriction> 
-	</xs:simpleType>
-	<!-- Elements --> 
+
+	<xs:element name="toolpathprofiles" type="CT_ToolpathProfiles"/>
+	<xs:complexType name="CT_ToolpathProfiles">
+		<xs:sequence>
+			<xs:element ref="toolpathprofile" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="toolpathprofile" type="CT_ToolpathProfile"/>
+	<xs:complexType name="CT_ToolpathProfile">
+		<xs:sequence>
+			<xs:element ref="modifier" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+		<xs:attribute name="name" type="ST_String" use="required"/>
+		<xs:attribute name="laserpower" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="laserspeed" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="jumpspeed" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="laserfocus" type="ST_Number" use="optional"/>
+		<xs:attribute name="laserindex" type="ST_Integer" use="optional"/>
+		<xs:attribute name="depositionspeed" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="beadwidth" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="beadheight" type="ST_PositiveNumber" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="modifier" type="CT_ToolpathProfileModifier"/>
+	<xs:complexType name="CT_ToolpathProfileModifier">
+		<xs:attribute name="attribute" type="ST_String" use="required"/>
+		<xs:attribute name="type" type="ST_ModifierType" use="required"/>
+		<xs:attribute name="minvalue" type="ST_Number" use="required"/>
+		<xs:attribute name="maxvalue" type="ST_Number" use="required"/>
+		<xs:attribute name="factor" type="ST_ModifierFactor" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="toolpathlayers" type="CT_ToolpathLayers"/>
+	<xs:complexType name="CT_ToolpathLayers">
+		<xs:sequence>
+			<xs:element ref="toolpathlayer" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="zbottom" type="ST_Number" use="optional" default="0"/>
+	</xs:complexType>
+
+	<xs:element name="toolpathlayer" type="CT_ToolpathLayer"/>
+	<xs:complexType name="CT_ToolpathLayer">
+		<xs:attribute name="ztop" type="ST_Number" use="optional"/>
+		<xs:attribute name="path" type="ST_UriReference" use="required"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<!-- Custom, vendor-defined data container. Content is foreign markup. -->
+	<xs:element name="toolpathdata" type="CT_ToolpathData"/>
+	<xs:complexType name="CT_ToolpathData">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<!-- ===================== Part I: Layer ASCII XML ===================== -->
+	<xs:element name="layer" type="CT_Layer"/>
+	<xs:complexType name="CT_Layer">
+		<xs:sequence>
+			<xs:element ref="parts" minOccurs="0" maxOccurs="1"/>
+			<xs:element ref="profiles" minOccurs="0" maxOccurs="1"/>
+			<xs:element ref="data" minOccurs="0" maxOccurs="1"/>
+			<xs:element ref="segments" minOccurs="0" maxOccurs="1"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="parts" type="CT_Parts"/>
+	<xs:complexType name="CT_Parts">
+		<xs:sequence>
+			<xs:element ref="part" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="part" type="CT_Part"/>
+	<xs:complexType name="CT_Part">
+		<xs:attribute name="id" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+	</xs:complexType>
+
+	<xs:element name="profiles" type="CT_Profiles"/>
+	<xs:complexType name="CT_Profiles">
+		<xs:sequence>
+			<xs:element ref="profile" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="profile" type="CT_Profile"/>
+	<xs:complexType name="CT_Profile">
+		<xs:attribute name="id" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
+	</xs:complexType>
+
+	<!-- Custom, vendor-defined per-layer data container. Content is foreign markup. -->
+	<xs:element name="data" type="CT_LayerData"/>
+	<xs:complexType name="CT_LayerData">
+		<xs:sequence>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="segments" type="CT_Segments"/>
+	<xs:complexType name="CT_Segments">
+		<xs:sequence>
+			<xs:element ref="segment" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="segment" type="CT_Segment"/>
+	<xs:complexType name="CT_Segment">
+		<!-- A segment carries the geometry appropriate to the toolpathtype:
+		     <point> for planar, <point3d>/<point6d> for 3axis/6axis polylines and
+		     loops, and <hatch> for hatch segments. A Binary Encoding extension MAY
+		     supply the geometry through foreign-namespaced elements instead. -->
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element ref="point"/>
+			<xs:element ref="point3d"/>
+			<xs:element ref="point6d"/>
+			<xs:element ref="hatch"/>
+			<xs:any namespace="##other" processContents="lax"/>
+		</xs:choice>
+		<xs:attribute name="type" type="ST_String" use="required"/>
+		<xs:attribute name="profileid" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="partid" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="laserindex" type="ST_Integer" use="optional"/>
+		<xs:attribute name="timeprediction" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attribute name="jumpprediction" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<!-- Nonlinear modifier sample: value of the named factor at parameter t. -->
+	<xs:element name="sub" type="CT_Sub"/>
+	<xs:complexType name="CT_Sub">
+		<xs:attribute name="t" type="ST_ModifierScale" use="required"/>
+		<xs:attribute name="e" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="f" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="g" type="ST_ModifierScale" use="optional"/>
+		<xs:attribute name="h" type="ST_ModifierScale" use="optional"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="point" type="CT_Point"/>
+	<xs:complexType name="CT_Point">
+		<xs:sequence>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="x" type="ST_Integer" use="required"/>
+		<xs:attribute name="y" type="ST_Integer" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attributeGroup ref="AG_ModifierFactors"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="point3d" type="CT_Point3D"/>
+	<xs:complexType name="CT_Point3D">
+		<xs:sequence>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="x" type="ST_Integer" use="required"/>
+		<xs:attribute name="y" type="ST_Integer" use="required"/>
+		<xs:attribute name="z" type="ST_Integer" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attributeGroup ref="AG_ModifierFactors"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="point6d" type="CT_Point6D"/>
+	<xs:complexType name="CT_Point6D">
+		<xs:sequence>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="x" type="ST_Integer" use="required"/>
+		<xs:attribute name="y" type="ST_Integer" use="required"/>
+		<xs:attribute name="z" type="ST_Integer" use="required"/>
+		<xs:attribute name="i" type="ST_Integer" use="required"/>
+		<xs:attribute name="j" type="ST_Integer" use="required"/>
+		<xs:attribute name="k" type="ST_Integer" use="required"/>
+		<xs:attribute name="w" type="ST_Integer" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attributeGroup ref="AG_ModifierFactors"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+
+	<xs:element name="hatch" type="CT_Hatch"/>
+	<xs:complexType name="CT_Hatch">
+		<xs:sequence>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="x1" type="ST_Integer" use="required"/>
+		<xs:attribute name="y1" type="ST_Integer" use="required"/>
+		<xs:attribute name="x2" type="ST_Integer" use="required"/>
+		<xs:attribute name="y2" type="ST_Integer" use="required"/>
+		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
+		<xs:attributeGroup ref="AG_ModifierFactors"/>
+		<xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
 </xs:schema>
 ```
 
