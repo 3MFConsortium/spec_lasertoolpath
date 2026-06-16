@@ -315,10 +315,13 @@ Element **\<tp:toolpathprofile>**
 | laserspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while marking, measured in mm/s |
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
-| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. |
+| spotradius | **ST\_PositiveNumber** | optional  |  lpbf | Laser processes: Radius of the laser spot in mm. |
+| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. |
 | depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 | beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
 | beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
+| prewaittime | **ST\_PositiveNumber** | optional  |   | All processes: Additional wait time before the segment in microseconds. If used with overrides, the value of the first segment point MUST BE used. |
+| postwaittime | **ST\_PositiveNumber** | optional  |   | All processes: Additional wait time after the segment in microseconds. If used with overrides, the value of the last segment point MUST BE used. |
 
 The \<toolpathprofile\>-elements are used to specify the properties of a laser melting or deposition process. This specification declares the above list of generic values to use. A producer MUST ensure that all necessary profile values are properly declared for a specific application, or as enforced by a profile codec.
 
