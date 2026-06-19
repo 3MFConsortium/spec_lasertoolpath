@@ -564,13 +564,13 @@ Declares one laser scan field available to this toolpath.
 | Name     | Type            | Use      | Annotation |
 | -------- | --------------- | -------- | ---------- |
 | index    | **ST\_PositiveInteger** | required | Unique identifier for this laser within the toolpath. Referenced by `laserindex` on profiles and segments. MUST be unique among all **\<tp\:lasersource>** siblings. |
-| name     | **ST\_String**  | optional | Human-readable label (e.g., `Laser 1`). |
-| minx     | **ST\_Number**  | required | Minimum X coordinate of the addressable scan field, in millimeters, in the global build-plane coordinate system. |
-| maxx     | **ST\_Number**  | required | Maximum X coordinate of the addressable scan field, in millimeters. MUST be greater than or equal to `minx`. |
-| miny     | **ST\_Number**  | required | Minimum Y coordinate of the addressable scan field, in millimeters. |
-| maxy     | **ST\_Number**  | required | Maximum Y coordinate of the addressable scan field, in millimeters. MUST be greater than or equal to `miny`. |
-| centerx  | **ST\_Number**  | optional | X coordinate of the scan-field optical center or home position, in millimeters. |
-| centery  | **ST\_Number**  | optional | Y coordinate of the scan-field optical center or home position, in millimeters. |
+| name     | **ST\_String**  | required | Human-readable label (e.g., `Laser 1`). |
+| minx     | **ST\_Integer** | optional | Minimum X coordinate of the addressable scan field, in toolpath units (integer device units; multiply by the resource `unitfactor` to obtain millimeters), in the global build-plane coordinate system. Part of the optional bounds group (see Conformance). |
+| maxx     | **ST\_Integer** | optional | Maximum X coordinate of the addressable scan field, in toolpath units. MUST be greater than or equal to `minx` when present. Part of the optional bounds group. |
+| miny     | **ST\_Integer** | optional | Minimum Y coordinate of the addressable scan field, in toolpath units. Part of the optional bounds group. |
+| maxy     | **ST\_Integer** | optional | Maximum Y coordinate of the addressable scan field, in toolpath units. MUST be greater than or equal to `miny` when present. Part of the optional bounds group. |
+| centerx  | **ST\_Integer** | optional | X coordinate of the scan-field optical center or home position, in toolpath units. Part of the optional center pair (see Conformance). |
+| centery  | **ST\_Integer** | optional | Y coordinate of the scan-field optical center or home position, in toolpath units. Part of the optional center pair. |
 
 Element **\<tp\:syncgroup>**
 
@@ -592,16 +592,18 @@ Declares a named set of lasers that participate in a synchronization barrier. Se
   * Every `lasersync` on a **\<segment>** MUST resolve to a declared **\<tp\:syncgroup>** `id`, or the consumer **MUST** reject the layer.
 * `index` values among **\<tp\:lasersource>** elements MUST be unique.
 * `id` values among **\<tp\:syncgroup>** elements MUST be unique.
+* The scan-field bounds form an **all-or-nothing group**: a **\<tp\:lasersource>** MUST either omit all of `minx`, `maxx`, `miny`, and `maxy`, or provide all four. If at least one of these attributes is present and any is missing, the consumer **MUST** reject the document. When the group is present, `maxx` MUST be greater than or equal to `minx`, and `maxy` MUST be greater than or equal to `miny`.
+* The optical center forms an **all-or-nothing pair**: a **\<tp\:lasersource>** MUST either omit both `centerx` and `centery`, or provide both. If exactly one is present, the consumer **MUST** reject the document.
 
 #### Example (informative)
 
 ```xml
 <tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868" unitfactor="0.001">
   <tp:lasersources default="1">
-    <tp:lasersource index="1" name="Laser 1" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
-    <tp:lasersource index="2" name="Laser 2" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
-    <tp:lasersource index="3" name="Laser 3" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
-    <tp:lasersource index="4" name="Laser 4" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="1" name="Laser 1" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
+    <tp:lasersource index="2" name="Laser 2" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
+    <tp:lasersource index="3" name="Laser 3" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
+    <tp:lasersource index="4" name="Laser 4" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
     <tp:syncgroup id="1" lasers="1 2 3 4" />
   </tp:lasersources>
   <!-- ... profiles and layers ... -->
@@ -1173,13 +1175,17 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="lasersource" type="CT_LaserSource"/>
 	<xs:complexType name="CT_LaserSource">
 		<xs:attribute name="index" type="ST_PositiveInteger" use="required"/>
-		<xs:attribute name="name" type="ST_String" use="optional"/>
-		<xs:attribute name="minx" type="ST_Number" use="required"/>
-		<xs:attribute name="maxx" type="ST_Number" use="required"/>
-		<xs:attribute name="miny" type="ST_Number" use="required"/>
-		<xs:attribute name="maxy" type="ST_Number" use="required"/>
-		<xs:attribute name="centerx" type="ST_Number" use="optional"/>
-		<xs:attribute name="centery" type="ST_Number" use="optional"/>
+		<xs:attribute name="name" type="ST_String" use="required"/>
+		<!-- Scan-field bounds are an optional all-or-nothing group: a producer
+		     either omits all of minx/maxx/miny/maxy or provides all four
+		     (enforced by prose; XSD 1.0 cannot express co-occurrence).
+		     The same applies to the centerx/centery pair. -->
+		<xs:attribute name="minx" type="ST_Integer" use="optional"/>
+		<xs:attribute name="maxx" type="ST_Integer" use="optional"/>
+		<xs:attribute name="miny" type="ST_Integer" use="optional"/>
+		<xs:attribute name="maxy" type="ST_Integer" use="optional"/>
+		<xs:attribute name="centerx" type="ST_Integer" use="optional"/>
+		<xs:attribute name="centery" type="ST_Integer" use="optional"/>
 	</xs:complexType>
 
 	<xs:element name="syncgroup" type="CT_SyncGroup"/>
@@ -1374,7 +1380,7 @@ The following fragments (informative) illustrate how the pieces fit together. Na
     <tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868"
                          unitfactor="0.001" toolpathtype="planar">
       <tp:lasersources default="1">
-        <tp:lasersource index="1" name="Laser 1" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" />
+        <tp:lasersource index="1" name="Laser 1" minx="0" maxx="100000" miny="0" maxy="100000" />
       </tp:lasersources>
       <tp:toolpathprofiles>
         <tp:toolpathprofile uuid="54066b90-8346-402b-8bc9-7d7cfdd54686" name="Default"
