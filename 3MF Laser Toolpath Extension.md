@@ -21,31 +21,49 @@
 
 [Preface](#preface)
 
-[About this Specification](#11-about-this-specification)
-
-[Document Conventions](#12-document-conventions)
-
-[Language Notes](#13-language-notes)
-
-[Software Conformance](#14-software-conformance)
+- [1.1. About this Specification](#11-about-this-specification)
+- [1.2. Document Conventions](#12-document-conventions)
+- [1.3. Language Notes](#13-language-notes)
+- [1.4. Software Conformance](#14-software-conformance)
 
 [Part I: 3MF Documents](#part-i-3mf-documents)
 
-[Chapter 1. Overview of Additions](#chapter-1-overview-of-additions)
+- [Chapter 1. Overview of Additions](#chapter-1-overview-of-additions)
+- [Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.](#chapter-2-planar-toolpathes-and-3-axis-to-6-axis-deposition-toolpathes)
+  - [2.1 Planar Toolpaths](#21-planar-toolpaths)
+  - [2.2 Multi Axis Deposition Toolpaths (3-6 axes)](#22-multi-axis-deposition-toolpaths-3-6-axes)
+  - [2.3 Interoperability and Use](#23-interoperability-and-use)
+  - [2.4 Machine specific profile codecs](#24-machine-specific-profile-codecs)
+- [Chapter 3. OPC Packet Structure](#chapter-3-opc-packet-structure)
+  - [3.1 Layer-Scoped XML Parts](#31-layer-scoped-xml-parts)
+  - [3.2 Relationships and Binding](#32-relationships-and-binding)
+- [Chapter 4. Toolpath Resource XML Structure](#chapter-4-toolpath-resource-xml-structure)
+  - [4.1 Toolpath profiles](#41-toolpath-profiles)
+  - [4.2 Toolpath profile modifiers](#42-toolpath-profile-modifiers)
+  - [4.3 Toolpath layers](#43-toolpath-layers)
+  - [4.4 Custom Toolpath Metadata](#44-custom-toolpath-metadata)
+  - [4.5 Laser Sources](#45-laser-sources)
 
-[Chapter 2. Object](#chapter-2-object)
+[Part II. Layer Data](#part-ii-layer-data)
 
-[Chapter 3. Object](#chapter-3-toolpathlayer)
+- [Chapter 1 - Layer ASCII XML Structure](#chapter-1---layer-ascii-xml-structure)
+  - [1.1. References to Parts and Profiles](#11-references-to-parts-and-profiles)
+    - [1.1.1 Parts](#111-parts)
+    - [1.1.2 Profiles](#112-profiles)
+  - [1.2. Segment Data](#12-segment-data)
+    - [1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization)
+  - [1.3. Planar Segment Data](#13-planar-segment-data)
+    - [1.3.1 Children of Segment](#131-children-of-segment)
+    - [1.3.2 Polyline Segment (planar)](#132-polyline-segment-planar)
+    - [1.3.3 Loop Segment (planar)](#133-loop-segment-planar)
+    - [1.3.4 Hatch Segment (planar)](#134-hatch-segment-planar)
 
-[Part II. Appendixes](#part-ii-appendixes)
+[Part III. Appendixes](#part-iii-appendixes)
 
-[Appendix A. Glossary](#appendix-a-glossary)
-
-[Appendix B. 3MF XSD Schema](#appendix-b-3mf-xsd-schema)
-
-[Appendix C. Standard Namespace](#appendix-c-standard-namespace)
-
-[Appendix D: Example file](#appendix-d-example-file)
+- [Appendix A. Glossary](#appendix-a-glossary)
+- [Appendix B. 3MF XSD Schema](#appendix-b-3mf-xsd-schema)
+- [Appendix C. Standard Namespace](#appendix-c-standard-namespace)
+- [Appendix D: Example file](#appendix-d-example-file)
 
 [References](#references)
 
@@ -316,7 +334,7 @@ Element **\<tp:toolpathprofile>**
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
 | spotradius | **ST\_PositiveNumber** | optional  |  lpbf | Laser processes: Radius of the laser spot in mm. |
-| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. |
+| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
 | depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 | beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
 | beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
@@ -503,6 +521,81 @@ To keep 3MF packages self-contained and deterministic, consumers and producers M
 
 > **Note:** The example shows a single vendor block. Multiple independent blocks (e.g., `<qa:report>…</qa:report>`, `<sim:results>…</sim:results>`) may be included side-by-side under **\<tp\:toolpathdata>**.
 
+## 4.5 Laser Sources
+
+Multi-laser LPBF systems expose several independent scan fields. A consumer MUST be able to determine how many lasers a toolpath targets, each laser's addressable field, and how cross-laser synchronization is expressed **without reading layer data**. For that reason, laser capability is declared at the **\<tp\:toolpathresource>** level, not inside individual layer parts.
+
+Element **\<tp\:lasersources>** is an optional child of **\<tp\:toolpathresource>**. Producers SHOULD place it as the **first** child of **\<tp\:toolpathresource>** so consumers can read laser metadata before profiles or layer references.
+
+Element **\<tp\:lasersources>**
+
+| Name    | Type                    | Use      | Default | Annotation |
+| ------- | ----------------------- | -------- | ------- | ---------- |
+| default | **ST\_PositiveInteger** | optional |         | Laser index used when a profile or segment omits `laserindex`. If present, MUST reference the `index` of a declared **\<tp\:lasersource>**. |
+
+**Children**
+
+* One or more **\<tp\:lasersource>** (MUST be ≥ 1 when **\<tp\:lasersources>** is present).
+* Zero or more **\<tp\:syncgroup>**.
+
+Element **\<tp\:lasersource>**
+
+Declares one laser scan field available to this toolpath.
+
+| Name     | Type            | Use      | Annotation |
+| -------- | --------------- | -------- | ---------- |
+| index    | **ST\_PositiveInteger** | required | Unique identifier for this laser within the toolpath. Referenced by `laserindex` on profiles and segments. MUST be unique among all **\<tp\:lasersource>** siblings. |
+| name     | **ST\_String**  | optional | Human-readable label (e.g., `Laser 1`). |
+| minx     | **ST\_Number**  | required | Minimum X coordinate of the addressable scan field, in millimeters, in the global build-plane coordinate system. |
+| maxx     | **ST\_Number**  | required | Maximum X coordinate of the addressable scan field, in millimeters. MUST be greater than or equal to `minx`. |
+| miny     | **ST\_Number**  | required | Minimum Y coordinate of the addressable scan field, in millimeters. |
+| maxy     | **ST\_Number**  | required | Maximum Y coordinate of the addressable scan field, in millimeters. MUST be greater than or equal to `miny`. |
+| centerx  | **ST\_Number**  | optional | X coordinate of the scan-field optical center or home position, in millimeters. |
+| centery  | **ST\_Number**  | optional | Y coordinate of the scan-field optical center or home position, in millimeters. |
+
+Element **\<tp\:syncgroup>**
+
+Declares a named set of lasers that participate in a synchronization barrier. Segments reference a sync group through the `lasersync` attribute (see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization)).
+
+| Name   | Type            | Use      | Annotation |
+| ------ | --------------- | -------- | ---------- |
+| id     | **ST\_PositiveInteger** | required | Unique identifier for this sync group within **\<tp\:lasersources>**. Referenced by `lasersync` on segments. MUST be unique among all **\<tp\:syncgroup>** siblings. |
+| lasers | **ST\_String**  | required | Space-separated list of **ST\_PositiveInteger** values. Each entry MUST be the `index` of a declared **\<tp\:lasersource>**. |
+
+#### Conformance
+
+* **\<tp\:lasersources>** is **optional**. If it is absent, the toolpath is treated as a single-laser document; `laserindex` SHOULD be omitted or set to `1`.
+* A producer that targets a **multi-laser** system — i.e., uses more than one distinct `laserindex` value, or uses `lasersync` on any segment — **MUST** declare **\<tp\:lasersources>** and enumerate every laser index referenced anywhere in the toolpath.
+* When **\<tp\:lasersources>** is present:
+  * Every `laserindex` on a **\<tp\:toolpathprofile>** or **\<segment>** MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
+  * If `default` is present, it MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
+  * Every entry in a **\<tp\:syncgroup>** `lasers` list MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
+  * Every `lasersync` on a **\<segment>** MUST resolve to a declared **\<tp\:syncgroup>** `id`, or the consumer **MUST** reject the layer.
+* `index` values among **\<tp\:lasersource>** elements MUST be unique.
+* `id` values among **\<tp\:syncgroup>** elements MUST be unique.
+
+#### Example (informative)
+
+```xml
+<tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868" unitfactor="0.001">
+  <tp:lasersources default="1">
+    <tp:lasersource index="1" name="Laser 1" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="2" name="Laser 2" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="3" name="Laser 3" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="4" name="Laser 4" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:syncgroup id="1" lasers="1 2 3 4" />
+  </tp:lasersources>
+  <!-- ... profiles and layers ... -->
+</tp:toolpathresource>
+```
+
+A segment that waits for all four lasers before exposing:
+
+```xml
+<segment type="hatch" profileid="1" partid="1" laserindex="1" lasersync="1">
+  <!-- hatch geometry ... -->
+</segment>
+```
 
 
 
@@ -571,7 +664,7 @@ Each segment MUST specify `profileid`. If any segment does refer to a `profileid
 
 Contains one or more **\<segment>** elements. Segments build a common wrapper class for types of toolpath geometry, and derive into specialist XML nodes, which then give proper information about.
 
-All segments are supposed to be executed sequentially in the order within the **\<segments>** element. For parallel processing, see the chapter below.
+All segments are listed in document order within **\<segments>**. Segments that share the same `laserindex` MUST be executed sequentially on that laser. Segments assigned to different `laserindex` values MAY be executed in parallel. Cross-laser ordering is unconstrained except at explicit synchronization barriers; see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization).
 
 
 **Element \<segment>**
@@ -582,12 +675,21 @@ All segments are supposed to be executed sequentially in the order within the **
 | type      | **ST\_String**             | required |         | One of `loop`, `polyline`, `hatch`.                                   |
 | profileid | **ST\_PositiveInteger**    | required |         | Resolves via **\<profiles>** (§2.2).                                  |
 | partid    | **ST\_PositiveInteger**    | optional |         | Resolves via **\<parts>** (§2.1).                                     |
-| laserindex | **ST\_Integer**           | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies. |
+| laserindex | **ST\_Integer**           | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
+| lasersync  | **ST\_PositiveInteger**   | optional |         | References the `id` of a **\<tp\:syncgroup>** declared under the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). Before this segment begins exposing, the consumer MUST wait until every laser listed in the referenced sync group has finished all exposures issued earlier in the layer on their respective tracks. If absent, no cross-laser barrier is imposed at this segment. MUST resolve to a declared sync group or the consumer **MUST** reject the layer. |
 | timeprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated execution time of this segment, in microseconds. This is the time the machine is expected to spend marking (exposing) the geometry contained in this segment. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | jumpprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated jump time to reach the start of this segment from the end of the preceding segment (or the machine origin for the first segment in a layer), in microseconds. This accounts for non-marking repositioning. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | tag       | **ST\_NonNegativeInteger** | optional |         | Producer-defined grouping or ordering hint. Consumers **MAY** ignore. |
 
 A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces of a layer XML, or reject the layer.
+
+### 1.2.1 Parallel Execution and Laser Synchronization
+
+On multi-laser systems, each laser operates its own exposure track. Segments are ordered **per laser**: all segments with the same resolved `laserindex` MUST be executed in document order on that laser. Segments on different lasers MAY run concurrently; the specification does not prescribe relative timing between lasers except at explicit barriers.
+
+Synchronization between lasers is expressed through the `lasersync` attribute on **\<segment>**, which references a **\<tp\:syncgroup>** declared in the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). When a segment carries `lasersync`, the consumer MUST NOT begin exposing that segment until every laser in the referenced sync group has completed all exposures that were issued earlier in the same layer on their respective tracks.
+
+This attribute-based barrier is the normative mechanism for cross-laser synchronization. A dedicated `type="sync"` segment is **not** defined by this specification.
 
 ## 1.3. Planar Segment Data
 
