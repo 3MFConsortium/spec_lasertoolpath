@@ -21,31 +21,53 @@
 
 [Preface](#preface)
 
-[About this Specification](#11-about-this-specification)
-
-[Document Conventions](#12-document-conventions)
-
-[Language Notes](#13-language-notes)
-
-[Software Conformance](#14-software-conformance)
+- [1.1. About this Specification](#11-about-this-specification)
+- [1.2. Document Conventions](#12-document-conventions)
+- [1.3. Language Notes](#13-language-notes)
+- [1.4. Software Conformance](#14-software-conformance)
 
 [Part I: 3MF Documents](#part-i-3mf-documents)
 
-[Chapter 1. Overview of Additions](#chapter-1-overview-of-additions)
+- [Chapter 1. Overview of Additions](#chapter-1-overview-of-additions)
+  - [Additions to the core model schema](#additions-to-the-core-model-schema)
+- [Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.](#chapter-2-planar-toolpathes-and-3-axis-to-6-axis-deposition-toolpathes)
+  - [2.1 Planar Toolpaths](#21-planar-toolpaths)
+  - [2.2 Multi Axis Deposition Toolpaths (3-6 axes)](#22-multi-axis-deposition-toolpaths-3-6-axes)
+  - [2.3 Interoperability and Use](#23-interoperability-and-use)
+  - [2.4 Machine specific profile codecs](#24-machine-specific-profile-codecs)
+- [Chapter 3. OPC Packet Structure](#chapter-3-opc-packet-structure)
+  - [3.1 Layer-Scoped XML Parts](#31-layer-scoped-xml-parts)
+  - [3.2 Relationships and Binding](#32-relationships-and-binding)
+- [Chapter 4. Toolpath Resource XML Structure](#chapter-4-toolpath-resource-xml-structure)
+  - [4.1 Toolpath profiles](#41-toolpath-profiles)
+  - [4.2 Toolpath profile modifiers](#42-toolpath-profile-modifiers)
+  - [4.3 Toolpath layers](#43-toolpath-layers)
+  - [4.4 Custom Toolpath Metadata](#44-custom-toolpath-metadata)
+  - [4.5 Laser Sources](#45-laser-sources)
+  - [4.6 Selecting a toolpath for the build](#46-selecting-a-toolpath-for-the-build)
 
-[Chapter 2. Object](#chapter-2-object)
+[Part II. Layer Data](#part-ii-layer-data)
 
-[Chapter 3. Object](#chapter-3-toolpathlayer)
+- [Chapter 1 - Layer ASCII XML Structure](#chapter-1---layer-ascii-xml-structure)
+  - [1.1. References to Parts and Profiles](#11-references-to-parts-and-profiles)
+    - [1.1.1 Parts](#111-parts)
+    - [1.1.2 Profiles](#112-profiles)
+  - [1.2. Segment Data](#12-segment-data)
+    - [1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization)
+  - [1.3. Planar Segment Data](#13-planar-segment-data)
+    - [1.3.1 Children of Segment](#131-children-of-segment)
+    - [1.3.2 Polyline Segment (planar)](#132-polyline-segment-planar)
+    - [1.3.3 Loop Segment (planar)](#133-loop-segment-planar)
+    - [1.3.4 Hatch Segment (planar)](#134-hatch-segment-planar)
 
-[Part II. Appendixes](#part-ii-appendixes)
+[Part III. Appendixes](#part-iii-appendixes)
 
-[Appendix A. Glossary](#appendix-a-glossary)
-
-[Appendix B. 3MF XSD Schema](#appendix-b-3mf-xsd-schema)
-
-[Appendix C. Standard Namespace](#appendix-c-standard-namespace)
-
-[Appendix D: Example file](#appendix-d-example-file)
+- [Appendix A. Glossary](#appendix-a-glossary)
+- [Appendix B. 3MF XSD Schema](#appendix-b-3mf-xsd-schema)
+  - [B.1 Additions to core types](#b1-additions-to-core-types)
+  - [B.2 Toolpath schema](#b2-toolpath-schema)
+- [Appendix C. Standard Namespace](#appendix-c-standard-namespace)
+- [Appendix D: Example file](#appendix-d-example-file)
 
 [References](#references)
 
@@ -134,6 +156,19 @@ Consumers MAY choose to recalculate or reinterpret the toolpath data, but they M
 The goal of this extension is to offer a structured, vendor-neutral, and scalable foundation for toolpath data that can bridge the gap between 3D geometry and machine execution, supporting the evolving ecosystem of industrial and open-source additive manufacturing systems.
 
 The producer of a 3MF document with the toolpath extension MUST also include the production extension as required. A consumer of the toolpath extension MUST  also understand the production extension in the document. This ensures the availability of proper referenceable UUIDs throughout the document.
+
+## Additions to the core model schema
+
+The Toolpath Extension makes two additions to the core 3MF model document:
+
+1. A new resource type, **\<tp\:toolpathresource>**, is added to the core **CT_Resources** group. A toolpath resource collects the toolpath profiles, the per-layer references, and optional laser-source metadata for one fabrication process.
+2. An optional attribute, `tp:toolpathid`, is added to the core **\<build>** element. It selects which toolpath resource is to be used to fabricate the build (see [§4.6 Selecting a toolpath for the build](#46-selecting-a-toolpath-for-the-build)).
+
+No other core elements are modified. The relationship between the new and existing elements is illustrated below.
+
+
+
+The formal schema deltas for **CT_Resources** and **\<build>** are given in [Appendix B.1](#appendix-b-3mf-xsd-schema).
 
 
 # Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.
@@ -228,6 +263,8 @@ This mechanism ensures that 3MF remains extensible and practical for a wide rang
 
 The 3MF Toolpath Extension is structured using the Open Packaging Convention (OPC), allowing efficient organization, referencing, and streaming of toolpath data. The OPC architecture enables the separation of layer data, profiles, and binary geometry into modular, independently accessible parts.
 
+As a 3MF package is a container that serves multiple different use cases, a producer of a package that carries toolpath data for fabrication SHOULD name the file with a double extension `.build.3mf` (for example, `part.build.3mf`). This naming convention helps consumers and operators distinguish build-ready, toolpath-bearing packages from generic 3MF models at a glance. The convention is informative only: it MUST NOT be used as the sole means of detecting the toolpath extension, which is always declared through the required-extensions mechanism of the core specification.
+
 ## 3.1 Layer-Scoped XML Parts
 
 Each individual build layer is represented by a dedicated XML part, which contains the geometric and metadata information required to fabricate that specific layer. These per-layer XML documents allow for:
@@ -255,7 +292,7 @@ Each layer XML is referenced via an explicit OPC relationship from the main tool
 
 The OPC relationship type used to bind a toolpath resource part to each of its layer parts is:
 
-`http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath`
+`http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer`
 
 The target of each such relationship MUST match the `path` attribute of the corresponding **\<tp\:toolpathlayer>** element (see [Chapter 4](#chapter-4-toolpath-resource-xml-structure)). The same relationship type is also used to bind any additional binary attachments referenced from the toolpath resource per OPC rules.
 
@@ -316,7 +353,7 @@ Element **\<tp:toolpathprofile>**
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
 | spotradius | **ST\_PositiveNumber** | optional  |  lpbf | Laser processes: Radius of the laser spot in mm. |
-| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. |
+| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
 | depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 | beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
 | beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
@@ -450,7 +487,7 @@ Element **\<tp:toolpathlayer>**
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
 | ztop | **ST\_PositiveInteger** | **required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger or equal than zbottom, as well as the ztop of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the indented behavior.  |
-| path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath` declared from the **\<tp\:toolpathresource>** part (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
+| path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer` declared from the **\<tp\:toolpathresource>** part (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
 
 
 ## 4.4 Custom Toolpath Metadata
@@ -503,6 +540,104 @@ To keep 3MF packages self-contained and deterministic, consumers and producers M
 
 > **Note:** The example shows a single vendor block. Multiple independent blocks (e.g., `<qa:report>…</qa:report>`, `<sim:results>…</sim:results>`) may be included side-by-side under **\<tp\:toolpathdata>**.
 
+## 4.5 Laser Sources
+
+Multi-laser LPBF systems expose several independent scan fields. A consumer MUST be able to determine how many lasers a toolpath targets, each laser's addressable field, and how cross-laser synchronization is expressed **without reading layer data**. For that reason, laser capability is declared at the **\<tp\:toolpathresource>** level, not inside individual layer parts.
+
+Element **\<tp\:lasersources>** is an optional child of **\<tp\:toolpathresource>**. Producers SHOULD place it as the **first** child of **\<tp\:toolpathresource>** so consumers can read laser metadata before profiles or layer references.
+
+Element **\<tp\:lasersources>**
+
+| Name    | Type                    | Use      | Default | Annotation |
+| ------- | ----------------------- | -------- | ------- | ---------- |
+| default | **ST\_PositiveInteger** | optional |         | Laser index used when a profile or segment omits `laserindex`. If present, MUST reference the `index` of a declared **\<tp\:lasersource>**. |
+
+**Children**
+
+* One or more **\<tp\:lasersource>** (MUST be ≥ 1 when **\<tp\:lasersources>** is present).
+* Zero or more **\<tp\:syncgroup>**.
+
+Element **\<tp\:lasersource>**
+
+Declares one laser scan field available to this toolpath.
+
+| Name     | Type            | Use      | Annotation |
+| -------- | --------------- | -------- | ---------- |
+| index    | **ST\_PositiveInteger** | required | Unique identifier for this laser within the toolpath. Referenced by `laserindex` on profiles and segments. MUST be unique among all **\<tp\:lasersource>** siblings. |
+| name     | **ST\_String**  | optional | Human-readable label (e.g., `Laser 1`). |
+| minx     | **ST\_Number**  | required | Minimum X coordinate of the addressable scan field, in millimeters, in the global build-plane coordinate system. |
+| maxx     | **ST\_Number**  | required | Maximum X coordinate of the addressable scan field, in millimeters. MUST be greater than or equal to `minx`. |
+| miny     | **ST\_Number**  | required | Minimum Y coordinate of the addressable scan field, in millimeters. |
+| maxy     | **ST\_Number**  | required | Maximum Y coordinate of the addressable scan field, in millimeters. MUST be greater than or equal to `miny`. |
+| centerx  | **ST\_Number**  | optional | X coordinate of the scan-field optical center or home position, in millimeters. |
+| centery  | **ST\_Number**  | optional | Y coordinate of the scan-field optical center or home position, in millimeters. |
+
+Element **\<tp\:syncgroup>**
+
+Declares a named set of lasers that participate in a synchronization barrier. Segments reference a sync group through the `lasersync` attribute (see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization)).
+
+| Name   | Type            | Use      | Annotation |
+| ------ | --------------- | -------- | ---------- |
+| id     | **ST\_PositiveInteger** | required | Unique identifier for this sync group within **\<tp\:lasersources>**. Referenced by `lasersync` on segments. MUST be unique among all **\<tp\:syncgroup>** siblings. |
+| lasers | **ST\_String**  | required | Space-separated list of **ST\_PositiveInteger** values. Each entry MUST be the `index` of a declared **\<tp\:lasersource>**. |
+
+#### Conformance
+
+* **\<tp\:lasersources>** is **optional**. If it is absent, the toolpath is treated as a single-laser document; `laserindex` SHOULD be omitted or set to `1`.
+* A producer that targets a **multi-laser** system — i.e., uses more than one distinct `laserindex` value, or uses `lasersync` on any segment — **MUST** declare **\<tp\:lasersources>** and enumerate every laser index referenced anywhere in the toolpath.
+* When **\<tp\:lasersources>** is present:
+  * Every `laserindex` on a **\<tp\:toolpathprofile>** or **\<segment>** MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
+  * If `default` is present, it MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
+  * Every entry in a **\<tp\:syncgroup>** `lasers` list MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
+  * Every `lasersync` on a **\<segment>** MUST resolve to a declared **\<tp\:syncgroup>** `id`, or the consumer **MUST** reject the layer.
+* `index` values among **\<tp\:lasersource>** elements MUST be unique.
+* `id` values among **\<tp\:syncgroup>** elements MUST be unique.
+
+#### Example (informative)
+
+```xml
+<tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868" unitfactor="0.001">
+  <tp:lasersources default="1">
+    <tp:lasersource index="1" name="Laser 1" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="2" name="Laser 2" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="3" name="Laser 3" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:lasersource index="4" name="Laser 4" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" centerx="50.0" centery="50.0" />
+    <tp:syncgroup id="1" lasers="1 2 3 4" />
+  </tp:lasersources>
+  <!-- ... profiles and layers ... -->
+</tp:toolpathresource>
+```
+
+A segment that waits for all four lasers before exposing:
+
+```xml
+<segment type="hatch" profileid="1" partid="1" laserindex="1" lasersync="1">
+  <!-- hatch geometry ... -->
+</segment>
+```
+
+
+## 4.6 Selecting a toolpath for the build
+
+A 3MF package MAY contain more than one **\<tp\:toolpathresource>** (for example, alternative process strategies for the same geometry). To make the producer's intent explicit, the core **\<build>** element MAY carry the optional `tp:toolpathid` attribute defined by this extension.
+
+| Name | Type | Use | Annotation |
+| ---- | ---- | --- | ---------- |
+| toolpathid | **ST\_ResourceID** | optional | Model resource `id` of the **\<tp\:toolpathresource>** that SHOULD be used to fabricate this build. The referenced resource MUST be a **\<tp\:toolpathresource>** present in the same model document. |
+
+The attribute is written with the toolpath namespace prefix on the core element, e.g.:
+
+```xml
+<build tp:toolpathid="1">
+  <item objectid="2" transform="1 0 0 0 1 0 0 0 1 0 0 0" />
+</build>
+```
+
+#### Conformance
+
+* `tp:toolpathid` is **optional**. If it is absent and the package contains exactly one **\<tp\:toolpathresource>**, a consumer SHOULD use that resource. If it is absent and several toolpath resources are present, the choice is consumer-defined.
+* If `tp:toolpathid` is present, it MUST reference the `id` of a **\<tp\:toolpathresource>** in the same model document, or the consumer **MUST** reject the document.
+* The attribute references the toolpath resource by its integer resource `id`, consistent with how other core elements reference resources.
 
 
 
@@ -518,7 +653,7 @@ Element **\<layer>**
 
 ![Layer XML structure](images/layerxml.png)
 
-* **Namespace (default):** `http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05`
+* **Namespace (default):** `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03`
 * **Other namespaces:** Producers MAY declare additional namespaces for vendor metadata (e.g., `mycompany:`) or process attributes (e.g., `skywriting:`). A separate `bin:` namespace is reserved for a Binary Encoding extension.
 
 Consumers MUST ignore unrecognized elements and attributes in namespaces other than the above default, except where this Part explicitly requires rejection.
@@ -571,7 +706,7 @@ Each segment MUST specify `profileid`. If any segment does refer to a `profileid
 
 Contains one or more **\<segment>** elements. Segments build a common wrapper class for types of toolpath geometry, and derive into specialist XML nodes, which then give proper information about.
 
-All segments are supposed to be executed sequentially in the order within the **\<segments>** element. For parallel processing, see the chapter below.
+All segments are listed in document order within **\<segments>**. Segments that share the same `laserindex` MUST be executed sequentially on that laser. Segments assigned to different `laserindex` values MAY be executed in parallel. Cross-laser ordering is unconstrained except at explicit synchronization barriers; see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization).
 
 
 **Element \<segment>**
@@ -582,12 +717,21 @@ All segments are supposed to be executed sequentially in the order within the **
 | type      | **ST\_String**             | required |         | One of `loop`, `polyline`, `hatch`.                                   |
 | profileid | **ST\_PositiveInteger**    | required |         | Resolves via **\<profiles>** (§2.2).                                  |
 | partid    | **ST\_PositiveInteger**    | optional |         | Resolves via **\<parts>** (§2.1).                                     |
-| laserindex | **ST\_Integer**           | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies. |
+| laserindex | **ST\_Integer**           | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
+| lasersync  | **ST\_PositiveInteger**   | optional |         | References the `id` of a **\<tp\:syncgroup>** declared under the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). Before this segment begins exposing, the consumer MUST wait until every laser listed in the referenced sync group has finished all exposures issued earlier in the layer on their respective tracks. If absent, no cross-laser barrier is imposed at this segment. MUST resolve to a declared sync group or the consumer **MUST** reject the layer. |
 | timeprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated execution time of this segment, in microseconds. This is the time the machine is expected to spend marking (exposing) the geometry contained in this segment. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | jumpprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated jump time to reach the start of this segment from the end of the preceding segment (or the machine origin for the first segment in a layer), in microseconds. This accounts for non-marking repositioning. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | tag       | **ST\_NonNegativeInteger** | optional |         | Producer-defined grouping or ordering hint. Consumers **MAY** ignore. |
 
 A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces of a layer XML, or reject the layer.
+
+### 1.2.1 Parallel Execution and Laser Synchronization
+
+On multi-laser systems, each laser operates its own exposure track. Segments are ordered **per laser**: all segments with the same resolved `laserindex` MUST be executed in document order on that laser. Segments on different lasers MAY run concurrently; the specification does not prescribe relative timing between lasers except at explicit barriers.
+
+Synchronization between lasers is expressed through the `lasersync` attribute on **\<segment>**, which references a **\<tp\:syncgroup>** declared in the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). When a segment carries `lasersync`, the consumer MUST NOT begin exposing that segment until every laser in the referenced sync group has completed all exposures that were issued earlier in the same layer on their respective tracks.
+
+This attribute-based barrier is the normative mechanism for cross-laser synchronization. A dedicated `type="sync"` segment is **not** defined by this specification.
 
 ## 1.3. Planar Segment Data
 
@@ -782,20 +926,48 @@ Set of independent straight lines. Each line is executed separately; travel betw
 
 ## Appendix B. 3MF XSD Schema
 
+This appendix defines the normative XSD for the Toolpath Extension. [B.1](#b1-additions-to-core-types) shows, informatively, the additions this extension makes to core 3MF types; [B.2](#b2-toolpath-schema) is the complete, normative toolpath schema. The same schema is also provided as a standalone file at `schema/toolpath_2026_03.xsd`.
+
+### B.1 Additions to core types
+
+The Toolpath Extension adds a new resource type to the core **CT_Resources** group and an optional attribute to the core **\<build>** element. The following deltas are expressed against the core 3MF schema and use the toolpath namespace prefix `tp`.
+
+```xml
+<!-- Delta to the core CT_Resources group: a 3MF document MAY contain one or
+     more toolpath resources among its resources. -->
+<xs:group name="CT_Resources">
+  <xs:sequence>
+    <!-- ... existing core resource elements ... -->
+    <xs:element ref="tp:toolpathresource" minOccurs="0" maxOccurs="unbounded"/>
+  </xs:sequence>
+</xs:group>
+
+<!-- Delta to the core <build> element: optional attribute selecting which
+     toolpath resource to fabricate. The attribute is declared globally in B.2. -->
+<xs:element name="build">
+  <xs:complexType>
+    <!-- ... existing core build content ... -->
+    <xs:attribute ref="tp:toolpathid" use="optional"/>
+  </xs:complexType>
+</xs:element>
+```
+
+### B.2 Toolpath schema
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace"
-targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" elementFormDefault="qualified" attributeFormDefault="unqualified" blockDefault="#all">
+<xs:schema xmlns="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xml="http://www.w3.org/XML/1998/namespace"
+targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" elementFormDefault="qualified" attributeFormDefault="unqualified" blockDefault="#all">
 	<xs:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="http://www.w3.org/2001/xml.xsd"/>
 	<xs:annotation>
 		<xs:documentation><![CDATA[   Schema notes:
 
   This schema covers both parts of the Toolpath extension:
-   - Part II: the <toolpathresource> structure embedded in the 3D model document.
-   - Part I:  the <layer> ASCII XML structure stored in separate OPC parts.
+   - Part I (3MF Documents): the <toolpathresource> structure embedded in the 3D model document.
+   - Part II (Layer Data): the <layer> ASCII XML structure stored in separate OPC parts.
 
   Both parts share the same namespace
-  (http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05) and therefore
+  (http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03) and therefore
   live in a single schema. In the model document the resource elements are used
   with a prefix (e.g. tp:toolpathresource); in a layer part the elements are
   used unprefixed with this namespace declared as the default.
@@ -879,6 +1051,18 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" 
 			<xs:enumeration value="h"/>
 		</xs:restriction>
 	</xs:simpleType>
+	<xs:simpleType name="ST_SegmentType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="loop"/>
+			<xs:enumeration value="polyline"/>
+			<xs:enumeration value="hatch"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_LaserIndexList">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[1-9][0-9]*( [1-9][0-9]*)*"/>
+		</xs:restriction>
+	</xs:simpleType>
 
 	<!-- ===================== Attribute Groups ===================== -->
 	<!-- Per-point/per-hatch scale factors. The unindexed factors (e,f,g,h) apply
@@ -899,10 +1083,11 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" 
 		<xs:attribute name="h2" type="ST_ModifierScale" use="optional"/>
 	</xs:attributeGroup>
 
-	<!-- ===================== Part II: Toolpath Resource ===================== -->
+	<!-- ===================== Part I: Toolpath Resource (model document) ===================== -->
 	<xs:element name="toolpathresource" type="CT_Toolpath"/>
 	<xs:complexType name="CT_Toolpath">
 		<xs:sequence>
+			<xs:element ref="lasersources" minOccurs="0" maxOccurs="1"/>
 			<xs:element ref="toolpathprofiles" minOccurs="0" maxOccurs="1"/>
 			<xs:element ref="toolpathlayers" minOccurs="0" maxOccurs="1"/>
 			<xs:element ref="toolpathdata" minOccurs="0" maxOccurs="1"/>
@@ -932,10 +1117,13 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" 
 		<xs:attribute name="laserspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="jumpspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="laserfocus" type="ST_Number" use="optional"/>
+		<xs:attribute name="spotradius" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="laserindex" type="ST_Integer" use="optional"/>
 		<xs:attribute name="depositionspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="beadwidth" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="beadheight" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="prewaittime" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="postwaittime" type="ST_PositiveNumber" use="optional"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
 
@@ -954,12 +1142,12 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" 
 		<xs:sequence>
 			<xs:element ref="toolpathlayer" minOccurs="0" maxOccurs="unbounded"/>
 		</xs:sequence>
-		<xs:attribute name="zbottom" type="ST_Number" use="optional" default="0"/>
+		<xs:attribute name="zbottom" type="ST_NonNegativeInteger" use="optional" default="0"/>
 	</xs:complexType>
 
 	<xs:element name="toolpathlayer" type="CT_ToolpathLayer"/>
 	<xs:complexType name="CT_ToolpathLayer">
-		<xs:attribute name="ztop" type="ST_Number" use="optional"/>
+		<xs:attribute name="ztop" type="ST_PositiveInteger" use="optional"/>
 		<xs:attribute name="path" type="ST_UriReference" use="required"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -973,7 +1161,38 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" 
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
 
-	<!-- ===================== Part I: Layer ASCII XML ===================== -->
+	<xs:element name="lasersources" type="CT_LaserSources"/>
+	<xs:complexType name="CT_LaserSources">
+		<xs:sequence>
+			<xs:element ref="lasersource" minOccurs="1" maxOccurs="unbounded"/>
+			<xs:element ref="syncgroup" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="default" type="ST_PositiveInteger" use="optional"/>
+	</xs:complexType>
+
+	<xs:element name="lasersource" type="CT_LaserSource"/>
+	<xs:complexType name="CT_LaserSource">
+		<xs:attribute name="index" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="name" type="ST_String" use="optional"/>
+		<xs:attribute name="minx" type="ST_Number" use="required"/>
+		<xs:attribute name="maxx" type="ST_Number" use="required"/>
+		<xs:attribute name="miny" type="ST_Number" use="required"/>
+		<xs:attribute name="maxy" type="ST_Number" use="required"/>
+		<xs:attribute name="centerx" type="ST_Number" use="optional"/>
+		<xs:attribute name="centery" type="ST_Number" use="optional"/>
+	</xs:complexType>
+
+	<xs:element name="syncgroup" type="CT_SyncGroup"/>
+	<xs:complexType name="CT_SyncGroup">
+		<xs:attribute name="id" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="lasers" type="ST_LaserIndexList" use="required"/>
+	</xs:complexType>
+
+	<!-- Global attribute added to the core <build> element: selects the
+	     toolpath resource (by id) to use for fabricating this build. -->
+	<xs:attribute name="toolpathid" type="ST_ResourceID"/>
+
+	<!-- ===================== Part II: Layer ASCII XML (OPC layer parts) ===================== -->
 	<xs:element name="layer" type="CT_Layer"/>
 	<xs:complexType name="CT_Layer">
 		<xs:sequence>
@@ -1041,10 +1260,11 @@ targetNamespace="http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05" 
 			<xs:element ref="hatch"/>
 			<xs:any namespace="##other" processContents="lax"/>
 		</xs:choice>
-		<xs:attribute name="type" type="ST_String" use="required"/>
+		<xs:attribute name="type" type="ST_SegmentType" use="required"/>
 		<xs:attribute name="profileid" type="ST_PositiveInteger" use="required"/>
 		<xs:attribute name="partid" type="ST_PositiveInteger" use="optional"/>
 		<xs:attribute name="laserindex" type="ST_Integer" use="optional"/>
+		<xs:attribute name="lasersync" type="ST_PositiveInteger" use="optional"/>
 		<xs:attribute name="timeprediction" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="jumpprediction" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
@@ -1127,18 +1347,79 @@ A single XML namespace is used for both the **\<tp\:toolpathresource>** structur
 
 | Name | URI |
 | --- | --- |
-| Toolpath namespace (prefix `tp`) | [http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05](http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05) |
-| Toolpath OPC relationship type | `http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath` |
-| Binary Encoding namespace (prefix `bin`) | [http://schemas.microsoft.com/3dmanufacturing/binary/2023/05](http://schemas.microsoft.com/3dmanufacturing/binary/2023/05) |
+| Toolpath namespace (prefix `tp`) | [http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03](http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03) |
+| Toolpath OPC relationship type | `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer` |
+| Binary Encoding namespace (prefix `bin`) | [http://schemas.3mf.io/3dmanufacturing/binary/2023/05](http://schemas.3mf.io/3dmanufacturing/binary/2023/05) |
+
+> **Deprecation note:** Earlier drafts of this extension used the namespace `http://schemas.microsoft.com/3dmanufacturing/toolpath/2019/05` and the OPC relationship type `http://schemas.microsoft.com/3dmanufacturing/2019/05/toolpath`. These Microsoft-hosted URIs are **deprecated** and MUST NOT be produced by conforming writers. Consumers SHOULD continue to accept the deprecated URIs when reading existing packages, treating them as equivalent to the URIs in the table above.
 
 
 # Appendix D: Example file
 
+The following fragments (informative) illustrate how the pieces fit together. Namespaces are abbreviated for readability.
+
+## D.1 Model document fragment (`/3D/3dmodel.model`)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xml:lang="en-US"
+       xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"
+       xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"
+       xmlns:tp="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03"
+       requiredextensions="p tp">
+  <resources>
+    <object id="2" p:UUID="6ed4f9d0-0a1b-4f4a-9b3a-0d2a9a3b6c10" type="model">
+      <mesh> <!-- ... --> </mesh>
+    </object>
+    <tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868"
+                         unitfactor="0.001" toolpathtype="planar">
+      <tp:lasersources default="1">
+        <tp:lasersource index="1" name="Laser 1" minx="0.0" maxx="100.0" miny="0.0" maxy="100.0" />
+      </tp:lasersources>
+      <tp:toolpathprofiles>
+        <tp:toolpathprofile uuid="54066b90-8346-402b-8bc9-7d7cfdd54686" name="Default"
+                            laserpower="200.0" laserspeed="1000.0" laserindex="1" />
+      </tp:toolpathprofiles>
+      <tp:toolpathlayers>
+        <tp:toolpathlayer ztop="50" path="/Toolpath/Layers/layer00001.xml" />
+      </tp:toolpathlayers>
+    </tp:toolpathresource>
+  </resources>
+  <build p:UUID="b4c8a1d2-1e2f-4a3b-8c5d-6e7f80910a2b" tp:toolpathid="1">
+    <item objectid="2" p:UUID="2f1d3c4b-5a6e-4d7c-8b9a-0c1d2e3f4a5b"
+          transform="1 0 0 0 1 0 0 0 1 0 0 0" />
+  </build>
+</model>
 ```
 
-## Toolpathlayer
+## D.2 OPC relationship binding a layer part
+
+Declared from the toolpath resource part's `.rels`:
+
 ```xml
-<?xml version="1.0" encoding="utf-8"?> ...
+<Relationship Id="rel1"
+  Type="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer"
+  Target="/Toolpath/Layers/layer00001.xml" />
+```
+
+## D.3 Layer part (`/Toolpath/Layers/layer00001.xml`)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<layer xmlns="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03">
+  <parts>
+    <part id="1" uuid="48dcad0f-4ab3-4641-95b1-28cbbf3c028d" />
+  </parts>
+  <profiles>
+    <profile id="1" uuid="54066b90-8346-402b-8bc9-7d7cfdd54686" />
+  </profiles>
+  <segments>
+    <segment type="hatch" profileid="1" partid="1" laserindex="1">
+      <hatch x1="0" y1="0" x2="10000" y2="0" />
+      <hatch x1="0" y1="100" x2="10000" y2="100" />
+    </segment>
+  </segments>
+</layer>
 ```
 
 # References
