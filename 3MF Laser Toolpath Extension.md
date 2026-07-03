@@ -202,7 +202,7 @@ Planar toolpaths are especially well suited for:
 
 Beyond planar systems, many additive processes now involve continuous motion in 3D space or require dynamic orientation of the tool or part. The Toolpath Extension supports:
 
-- 3-axis toolpaths: Represented as spatial 3D curves or polylines. Used for freeform material deposition or point-wise energy delivery on non-planar surfaces.<!-- I'm confused...why nonplanar here. I understand that 2.5 can be nonplanar but only for FFF - not point-wise energy delivery -->
+- 3-axis toolpaths: Represented as spatial 3D polylines whose points carry a full `z` coordinate, so the tool position moves continuously in three dimensions. Used for freeform material deposition that follows non-planar paths (e.g. FFF or directed energy deposition), where the tool tip traces the deposited geometry directly. Tool orientation remains fixed; when orientation must also vary, a 6-axis toolpath is used instead.
 
 - 6-axis toolpaths: Represented as a 3 linear and 3 rotational values per point. This is required in robotic or multi-DOF systems where tool orientation is dynamically controlled (e.g., Directed Energy Deposition with a robot arm).
 
@@ -353,7 +353,7 @@ Element **\<tp:toolpathprofile>**
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
 | spotradius | **ST\_PositiveNumber** | optional  |  lpbf | Laser processes: Radius of the laser spot in mm. |
-| laserindex | **ST\_Integer** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
+| laserindex | **ST\_NonNegativeInteger** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
 | depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 | beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
 | beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
@@ -458,7 +458,7 @@ Given a parent element with start value `f1`, end value `f2`, and _n_ **\<sub>**
 
 #### Example (informative)
 
-A hatch with a nonlinear `f` modifier that ramps up to full power in the first 20%, holds steady, then ramps down in the last 20%:
+A hatch with a nonlinear `f` modifier that ramps up steeply over the first 20%, then gently tapers off over the remainder:
 
 ```xml
 <hatch x1="0" y1="0" x2="10000" y2="0" f1="0.0" f2="0.5">
@@ -467,7 +467,7 @@ A hatch with a nonlinear `f` modifier that ramps up to full power in the first 2
 </hatch>
 ```
 
-This produces: linear ramp 0.0&nbsp;&rarr;&nbsp;1.0 over \[0,&nbsp;0.2\], constant 1.0 over \[0.2,&nbsp;0.8\], linear ramp 1.0&nbsp;&rarr;&nbsp;0.0 over \[0.8,&nbsp;1\].
+This produces the piecewise-linear curve through the control points (0,&nbsp;0.0), (0.2,&nbsp;0.8), (0.8,&nbsp;0.6), (1,&nbsp;0.5): linear ramp 0.0&nbsp;&rarr;&nbsp;0.8 over \[0,&nbsp;0.2\], linear decrease 0.8&nbsp;&rarr;&nbsp;0.6 over \[0.2,&nbsp;0.8\], and linear decrease 0.6&nbsp;&rarr;&nbsp;0.5 over \[0.8,&nbsp;1\].
 
 ## 4.3 Toolpath layers
 
@@ -550,7 +550,7 @@ Element **\<tp\:lasersources>**
 
 | Name    | Type                    | Use      | Default | Annotation |
 | ------- | ----------------------- | -------- | ------- | ---------- |
-| default | **ST\_PositiveInteger** | optional |         | Laser index used when a profile or segment omits `laserindex`. If present, MUST reference the `index` of a declared **\<tp\:lasersource>**. |
+| default | **ST\_NonNegativeInteger** | optional |         | Laser index used when a profile or segment omits `laserindex`. If present, MUST reference the `index` of a declared **\<tp\:lasersource>**. |
 
 **Children**
 
@@ -563,7 +563,7 @@ Declares one laser scan field available to this toolpath.
 
 | Name     | Type            | Use      | Annotation |
 | -------- | --------------- | -------- | ---------- |
-| index    | **ST\_PositiveInteger** | required | Unique identifier for this laser within the toolpath. Referenced by `laserindex` on profiles and segments. MUST be unique among all **\<tp\:lasersource>** siblings. |
+| index    | **ST\_NonNegativeInteger** | required | Unique identifier for this laser within the toolpath. Referenced by `laserindex` on profiles and segments. MUST be unique among all **\<tp\:lasersource>** siblings. |
 | name     | **ST\_String**  | required | Human-readable label (e.g., `Laser 1`). |
 | minx     | **ST\_Integer** | optional | Minimum X coordinate of the addressable scan field, in toolpath units (integer device units; multiply by the resource `unitfactor` to obtain millimeters), in the global build-plane coordinate system. Part of the optional bounds group (see Conformance). |
 | maxx     | **ST\_Integer** | optional | Maximum X coordinate of the addressable scan field, in toolpath units. MUST be greater than or equal to `minx` when present. Part of the optional bounds group. |
@@ -571,6 +571,7 @@ Declares one laser scan field available to this toolpath.
 | maxy     | **ST\_Integer** | optional | Maximum Y coordinate of the addressable scan field, in toolpath units. MUST be greater than or equal to `miny` when present. Part of the optional bounds group. |
 | centerx  | **ST\_Integer** | optional | X coordinate of the scan-field optical center or home position, in toolpath units. Part of the optional center pair (see Conformance). |
 | centery  | **ST\_Integer** | optional | Y coordinate of the scan-field optical center or home position, in toolpath units. Part of the optional center pair. |
+| cornerradius | **ST\_PositiveInteger** | optional | Radius used to round the four corners of the rectangular scan field, in toolpath units. When present, the addressable field is the rectangle \[`minx`,&nbsp;`maxx`\]&times;\[`miny`,&nbsp;`maxy`\] with each corner rounded by this radius. A value equal to half the shorter side yields a fully rounded field (a circle when the field is square). Only valid when the bounds group is present, and independent of the optical center (see Conformance). |
 
 Element **\<tp\:syncgroup>**
 
@@ -579,11 +580,11 @@ Declares a named set of lasers that participate in a synchronization barrier. Se
 | Name   | Type            | Use      | Annotation |
 | ------ | --------------- | -------- | ---------- |
 | id     | **ST\_PositiveInteger** | required | Unique identifier for this sync group within **\<tp\:lasersources>**. Referenced by `lasersync` on segments. MUST be unique among all **\<tp\:syncgroup>** siblings. |
-| lasers | **ST\_String**  | required | Space-separated list of **ST\_PositiveInteger** values. Each entry MUST be the `index` of a declared **\<tp\:lasersource>**. |
+| lasers | **ST\_String**  | required | Space-separated list of **ST\_NonNegativeInteger** values. Each entry MUST be the `index` of a declared **\<tp\:lasersource>**. |
 
 #### Conformance
 
-* **\<tp\:lasersources>** is **optional**. If it is absent, the toolpath is treated as a single-laser document; `laserindex` SHOULD be omitted or set to `1`.
+* **\<tp\:lasersources>** is **optional**. If it is absent, the toolpath is treated as a single-laser document; `laserindex` SHOULD be omitted or set to `0`.
 * A producer that targets a **multi-laser** system — i.e., uses more than one distinct `laserindex` value, or uses `lasersync` on any segment — **MUST** declare **\<tp\:lasersources>** and enumerate every laser index referenced anywhere in the toolpath.
 * When **\<tp\:lasersources>** is present:
   * Every `laserindex` on a **\<tp\:toolpathprofile>** or **\<segment>** MUST resolve to a declared **\<tp\:lasersource>** `index`, or the consumer **MUST** reject the document.
@@ -594,14 +595,15 @@ Declares a named set of lasers that participate in a synchronization barrier. Se
 * `id` values among **\<tp\:syncgroup>** elements MUST be unique.
 * The scan-field bounds form an **all-or-nothing group**: a **\<tp\:lasersource>** MUST either omit all of `minx`, `maxx`, `miny`, and `maxy`, or provide all four. If at least one of these attributes is present and any is missing, the consumer **MUST** reject the document. When the group is present, `maxx` MUST be greater than or equal to `minx`, and `maxy` MUST be greater than or equal to `miny`.
 * The optical center forms an **all-or-nothing pair**: a **\<tp\:lasersource>** MUST either omit both `centerx` and `centery`, or provide both. If exactly one is present, the consumer **MUST** reject the document.
+* The `cornerradius` attribute is **optional** and describes a rounded scan field. It MUST only be present when the scan-field bounds group is present; if `cornerradius` is present while any of `minx`, `maxx`, `miny`, `maxy` is absent, the consumer **MUST** reject the document. When present, `cornerradius` MUST be greater than 0 and MUST be less than or equal to half of the shorter field dimension — i.e. `cornerradius` ≤ min(`maxx` − `minx`, `maxy` − `miny`) ÷ 2 — otherwise the consumer **MUST** reject the document. A `cornerradius` equal to this maximum produces a fully rounded field (a circle when the field is square, a stadium shape when it is rectangular). `cornerradius` is independent of the optical center (`centerx`/`centery`).
 
 #### Example (informative)
 
 ```xml
 <tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868" unitfactor="0.001">
   <tp:lasersources default="1">
-    <tp:lasersource index="1" name="Laser 1" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
-    <tp:lasersource index="2" name="Laser 2" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
+    <tp:lasersource index="1" name="Laser 1" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" cornerradius="50000" /> <!-- circular field -->
+    <tp:lasersource index="2" name="Laser 2" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" cornerradius="20000" /> <!-- rounded rectangle -->
     <tp:lasersource index="3" name="Laser 3" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
     <tp:lasersource index="4" name="Laser 4" minx="0" maxx="100000" miny="0" maxy="100000" centerx="50000" centery="50000" />
     <tp:syncgroup id="1" lasers="1 2 3 4" />
@@ -719,7 +721,7 @@ All segments are listed in document order within **\<segments>**. Segments that 
 | type      | **ST\_String**             | required |         | One of `loop`, `polyline`, `hatch`.                                   |
 | profileid | **ST\_PositiveInteger**    | required |         | Resolves via **\<profiles>** (§2.2).                                  |
 | partid    | **ST\_PositiveInteger**    | optional |         | Resolves via **\<parts>** (§2.1).                                     |
-| laserindex | **ST\_Integer**           | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
+| laserindex | **ST\_NonNegativeInteger** | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
 | lasersync  | **ST\_PositiveInteger**   | optional |         | References the `id` of a **\<tp\:syncgroup>** declared under the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). Before this segment begins exposing, the consumer MUST wait until every laser listed in the referenced sync group has finished all exposures issued earlier in the layer on their respective tracks. If absent, no cross-laser barrier is imposed at this segment. MUST resolve to a declared sync group or the consumer **MUST** reject the layer. |
 | timeprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated execution time of this segment, in microseconds. This is the time the machine is expected to spend marking (exposing) the geometry contained in this segment. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | jumpprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated jump time to reach the start of this segment from the end of the preceding segment (or the machine origin for the first segment in a layer), in microseconds. This accounts for non-marking repositioning. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
@@ -853,7 +855,7 @@ Closed polygon executed as a continuous mark. If the last point in the list is n
 
 **Children**
 
-* Two or more **\<point>** element (MUST be ≥ 3).
+* Three or more **\<point>** element (MUST be ≥ 3).
 
 **Child \<point> (planar)**
 
@@ -1058,11 +1060,13 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 			<xs:enumeration value="loop"/>
 			<xs:enumeration value="polyline"/>
 			<xs:enumeration value="hatch"/>
+			<xs:enumeration value="polyline3d"/>
+			<xs:enumeration value="polyline6d"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_LaserIndexList">
 		<xs:restriction base="xs:string">
-			<xs:pattern value="[1-9][0-9]*( [1-9][0-9]*)*"/>
+			<xs:pattern value="(0|[1-9][0-9]*)( (0|[1-9][0-9]*))*"/>
 		</xs:restriction>
 	</xs:simpleType>
 
@@ -1120,7 +1124,8 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		<xs:attribute name="jumpspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="laserfocus" type="ST_Number" use="optional"/>
 		<xs:attribute name="spotradius" type="ST_PositiveNumber" use="optional"/>
-		<xs:attribute name="laserindex" type="ST_Integer" use="optional"/>
+		<!-- laserindex uses the non-negative laser-index space (0 is a valid laser id). -->
+		<xs:attribute name="laserindex" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="depositionspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="beadwidth" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="beadheight" type="ST_PositiveNumber" use="optional"/>
@@ -1169,12 +1174,12 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 			<xs:element ref="lasersource" minOccurs="1" maxOccurs="unbounded"/>
 			<xs:element ref="syncgroup" minOccurs="0" maxOccurs="unbounded"/>
 		</xs:sequence>
-		<xs:attribute name="default" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="default" type="ST_NonNegativeInteger" use="optional"/>
 	</xs:complexType>
 
 	<xs:element name="lasersource" type="CT_LaserSource"/>
 	<xs:complexType name="CT_LaserSource">
-		<xs:attribute name="index" type="ST_PositiveInteger" use="required"/>
+		<xs:attribute name="index" type="ST_NonNegativeInteger" use="required"/>
 		<xs:attribute name="name" type="ST_String" use="required"/>
 		<!-- Scan-field bounds are an optional all-or-nothing group: a producer
 		     either omits all of minx/maxx/miny/maxy or provides all four
@@ -1186,6 +1191,10 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		<xs:attribute name="maxy" type="ST_Integer" use="optional"/>
 		<xs:attribute name="centerx" type="ST_Integer" use="optional"/>
 		<xs:attribute name="centery" type="ST_Integer" use="optional"/>
+		<!-- cornerradius rounds the field corners; only valid with the full bounds
+		     group and MUST be <= min(maxx-minx, maxy-miny)/2 (enforced by prose,
+		     XSD 1.0 cannot express the co-occurrence and value constraint). -->
+		<xs:attribute name="cornerradius" type="ST_PositiveInteger" use="optional"/>
 	</xs:complexType>
 
 	<xs:element name="syncgroup" type="CT_SyncGroup"/>
@@ -1269,7 +1278,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		<xs:attribute name="type" type="ST_SegmentType" use="required"/>
 		<xs:attribute name="profileid" type="ST_PositiveInteger" use="required"/>
 		<xs:attribute name="partid" type="ST_PositiveInteger" use="optional"/>
-		<xs:attribute name="laserindex" type="ST_Integer" use="optional"/>
+		<xs:attribute name="laserindex" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="lasersync" type="ST_PositiveInteger" use="optional"/>
 		<xs:attribute name="timeprediction" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="jumpprediction" type="ST_NonNegativeInteger" use="optional"/>
@@ -1321,10 +1330,10 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
 		<xs:attribute name="z" type="ST_Integer" use="required"/>
-		<xs:attribute name="i" type="ST_Integer" use="required"/>
-		<xs:attribute name="j" type="ST_Integer" use="required"/>
-		<xs:attribute name="k" type="ST_Integer" use="required"/>
-		<xs:attribute name="w" type="ST_Integer" use="required"/>
+		<xs:attribute name="i" type="ST_Number" use="required"/>
+		<xs:attribute name="j" type="ST_Number" use="required"/>
+		<xs:attribute name="k" type="ST_Number" use="required"/>
+		<xs:attribute name="w" type="ST_Number" use="required"/>
 		<xs:attribute name="tag" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attributeGroup ref="AG_ModifierFactors"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
