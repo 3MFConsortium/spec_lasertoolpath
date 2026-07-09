@@ -920,6 +920,16 @@ Each point other than the first "closes" the line arriving from the preceding po
 
 The `<point>` children of a polyline segment use the same attributes as the planar `<point>` defined in [§1.2.1](#121-children-of-segment). For a polyline, the "line that the point closes" is the line ending at that point.
 
+**Example** — an open polyline of three points (two connected line segments):
+
+```xml
+<segment type="polyline" profileid="1">
+  <point x="0" y="0"/>
+  <point x="10000" y="0"/>
+  <point x="10000" y="5000"/>
+</segment>
+```
+
 
 ### 1.3.2 Loop Segment (planar)
 
@@ -932,6 +942,16 @@ A **loop** is a closed polygon executed as a single continuous mark. Closure is 
 **Child \<point> (planar)**
 
 The `<point>` children of a loop segment use the same attributes as the planar `<point>` defined in [§1.2.1](#121-children-of-segment). For a loop, the "line that the point closes" is the line ending at that point, and the closing line from the last point back to the first inherits the modifier factors and `tag` of the first point.
+
+**Example** — a triangular loop; the first vertex is not repeated, the closing edge from the last point back to the first is implied:
+
+```xml
+<segment type="loop" profileid="1">
+  <point x="0" y="0"/>
+  <point x="10000" y="0"/>
+  <point x="5000" y="8000"/>
+</segment>
+```
 
 
 ### 1.3.3 Hatch Segment (planar)
@@ -947,6 +967,15 @@ Each hatch line carries its own modifier factors and `tag`, which apply to that 
 **Child \<hatch> (planar)**
 
 The `<hatch>` children of a hatch segment use the attributes defined for the planar `<hatch>` in [§1.2.1](#121-children-of-segment): the start and end coordinates (`x1`/`y1`, `x2`/`y2`), an optional `tag`, and the constant (`e`/`f`/`g`/`h`) or linear (`e1`/`e2` … `h1`/`h2`) modifier factors that modulate the line from its start to its end point.
+
+**Example** — two independent, parallel hatch lines (the move between them is a non-marking jump):
+
+```xml
+<segment type="hatch" profileid="2">
+  <hatch x1="0" y1="0" x2="10000" y2="0"/>
+  <hatch x1="0" y1="200" x2="10000" y2="200"/>
+</segment>
+```
 
 
 ## 1.4. Non-Planar Segment Data
@@ -973,6 +1002,16 @@ This segment type applies only to a toolpath with `toolpathtype="3axis"`.
 
 The `<point3d>` children of a 3-axis polyline use the attributes defined for `<point3d>` in [§1.2.1](#121-children-of-segment): the `x`, `y`, `z` coordinates, an optional `tag`, and the constant (`e`/`f`/`g`/`h`) or linear (`e1`/`e2` … `h1`/`h2`) modifier factors that apply to the line ending at that point.
 
+**Example** — an open 3-axis polyline climbing in Z (requires `toolpathtype="3axis"`):
+
+```xml
+<segment type="polyline3d" profileid="1">
+  <point3d x="0" y="0" z="0"/>
+  <point3d x="10000" y="0" z="500"/>
+  <point3d x="20000" y="0" z="1000"/>
+</segment>
+```
+
 ### 1.4.2 Polyline Segment (6 axis)
 
 A **6-axis polyline** is an open chain of connected line segments in 3D space in which each point additionally carries an orientation, executed as a single continuous mark. The **\<point6d>** children are visited in document order; a consumer marks a straight line from each point to the next through their explicit `x`, `y`, `z` coordinates while carrying the reference-frame orientation given by the quaternion values (`i`, `j`, `k`, `w`) at each point. Like a planar polyline, it is **open**: no line is implied from the last point back to the first, and the first vertex is never repeated at the end.
@@ -988,6 +1027,15 @@ This segment type applies only to a toolpath with `toolpathtype="6axis"`.
 **Child \<point6d> (6axis)**
 
 The `<point6d>` children of a 6-axis polyline use the attributes defined for `<point6d>` in [§1.2.1](#121-children-of-segment): the `x`, `y`, `z` coordinates, the quaternion orientation (`i`, `j`, `k`, `w`), an optional `tag`, and the constant (`e`/`f`/`g`/`h`) or linear (`e1`/`e2` … `h1`/`h2`) modifier factors that apply to the line ending at that point.
+
+**Example** — an open 6-axis polyline; each point carries an orientation quaternion (here the identity orientation `w=1`), requires `toolpathtype="6axis"`:
+
+```xml
+<segment type="polyline6d" profileid="1">
+  <point6d x="0" y="0" z="0" i="0" j="0" k="0" w="1"/>
+  <point6d x="10000" y="0" z="500" i="0" j="0" k="0" w="1"/>
+</segment>
+```
 
 
 # Part III. Appendixes
