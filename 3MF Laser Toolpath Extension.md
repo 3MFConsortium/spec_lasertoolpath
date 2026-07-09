@@ -331,7 +331,7 @@ Element **\<tp:toolpathresource>**
 | --- | --- | --- | --- | --- |
 | id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |
 | uuid | **ST\_UUID** | required |  | Global unique identifier . |
-| unitfactor | **ST\_Number** | required |  | Unit scaling factor to be applied to toolpath coordinates. In document units (see 3MF Core Specification). |
+| unitfactor | **ST\_Number** | required |  | Scaling factor applied to integer toolpath coordinates to obtain lengths in document units (see 3MF Core Specification). |
 | toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
 
 ## 4.1 Toolpath profiles
@@ -580,7 +580,7 @@ To keep 3MF packages self-contained and deterministic, consumers and producers M
   <!-- ... lasersources, profiles and layers ... -->
   <tp:toolpathdata>
     <mycompany:testmetadata>
-      <mycompany:toolpathinfo used_compensation_mode="simple" machine_model="MySLM7000"/>
+      <mycompany:toolpathinfo used_compensation_mode="simple" machine_model="MyLPBF7000"/>
     </mycompany:testmetadata>
   </tp:toolpathdata>
 </tp:toolpathresource>
@@ -613,7 +613,7 @@ Declares one laser scan field available to this toolpath.
 | -------- | --------------- | -------- | ---------- |
 | index    | **ST\_NonNegativeInteger** | required | Unique identifier for this laser within the toolpath. Referenced by `laserindex` on profiles and segments. MUST be unique among all **\<tp\:lasersource>** siblings. |
 | name     | **ST\_String**  | required | Human-readable label (e.g., `Laser 1`). |
-| minx     | **ST\_Integer** | optional | Minimum X coordinate of the addressable scan field, in toolpath units (integer device units; multiply by the resource `unitfactor` to obtain millimeters), in the global build-plane coordinate system. Part of the optional bounds group (see Conformance). |
+| minx     | **ST\_Integer** | optional | Minimum X coordinate of the addressable scan field, in toolpath units (integer device units; multiply by the resource `unitfactor` to obtain document units), in the global build-plane coordinate system. Part of the optional bounds group (see Conformance). |
 | maxx     | **ST\_Integer** | optional | Maximum X coordinate of the addressable scan field, in toolpath units. MUST be greater than or equal to `minx` when present. Part of the optional bounds group. |
 | miny     | **ST\_Integer** | optional | Minimum Y coordinate of the addressable scan field, in toolpath units. Part of the optional bounds group. |
 | maxy     | **ST\_Integer** | optional | Maximum Y coordinate of the addressable scan field, in toolpath units. MUST be greater than or equal to `miny` when present. Part of the optional bounds group. |
@@ -695,7 +695,7 @@ The attribute is written with the toolpath namespace prefix on the core element,
 
 # Part II. Layer Data
 
-This Part defines the representation of a toolpath layer and the rules for interpreting it. Unless noted otherwise, all coordinates are **integer device units** that MUST be converted to millimeters by multiplying with the parent **\<tp\:toolpathresource>**’s `unitfactor` (see Part I). Element and attribute names are case-sensitive.
+This Part defines the representation of a toolpath layer and the rules for interpreting it. Unless noted otherwise, all coordinates are **integer device units** that MUST be converted to document units by multiplying with the parent **\<tp\:toolpathresource>**’s `unitfactor` (see Part I). Document units are those declared by the core model's `unit` attribute (see the 3MF Core Specification). It is RECOMMENDED that producers use document units of millimeters, so that toolpath coordinates are directly interpretable across consumers. Element and attribute names are case-sensitive.
 
 Execution order of geometry MUST be the document order. Consumers MUST NOT reorder segments, 
 
@@ -747,6 +747,8 @@ Maps local identifiers to Toolpath Profiles defined in the parent **\<tp\:toolpa
 | uuid | **ST\_UUID**            | required | UUID of a **\<tp\:toolpathprofile>** declared under the parent resource’s **\<tp\:toolpathprofiles>**. |
 
 Each segment MUST specify `profileid`. If any segment does refer to a `profileid` not specified the same layer, the consumer **MUST** reject the layer.
+
+> **Note:** The `profileid` is purposefully not guaranteed to be globally unique, to ease implementation.
 
 ### 1.1.3 Custom Layer Metadata
 
