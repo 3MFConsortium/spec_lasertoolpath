@@ -330,7 +330,7 @@ Element **\<tp:toolpathresource>**
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
 | id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |
-| uuid | **ST\_UUID** | required |  | Global unique identifier . |
+| uuid | **ST\_UUID** | required |  | Globally unique identifier. |
 | unitfactor | **ST\_Number** | required |  | Scaling factor applied to integer toolpath coordinates to obtain lengths in document units (see 3MF Core Specification). |
 | toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
 
@@ -340,7 +340,7 @@ Element **\<tp:toolpathresource>**
 
 Element **\<tp:toolpathprofiles>**
 
-The \<toolpathprofiles\> element contains list of toolpath profiles that allow a machine process to convert the geometric toolpath definition into low level machine instructions.
+The \<toolpathprofiles\> element contains a list of toolpath profiles that allow a machine process to convert the geometric toolpath definition into low level machine instructions.
 
 Element **\<tp:toolpathprofile>**
 
@@ -731,7 +731,7 @@ Provides local identifiers for build items referenced by geometry.
 | id   | **ST\_PositiveInteger** | required | Identifier unique **within the layer**.                                        |
 | uuid | **ST\_UUID**            | required | UUID of the referenced build item present in the package. |
 
-Segments MUST reference a part via an integer `partid`. If any segment does refer to a `partid` not specified the same layer, the consumer **MUST** reject the layer.
+Every segment MUST reference a part via a required integer `partid`. If a segment refers to a `partid` not declared in the same layer, the consumer **MUST** reject the layer.
 
 > **Note:** The `partid` is purposefully not guaranteed to be globally unique, to ease implementation.
 
@@ -750,7 +750,7 @@ Maps local identifiers to Toolpath Profiles defined in the parent **\<tp\:toolpa
 | id   | **ST\_PositiveInteger** | required | Identifier unique **within the layer**.                                                                |
 | uuid | **ST\_UUID**            | required | UUID of a **\<tp\:toolpathprofile>** declared under the parent resource’s **\<tp\:toolpathprofiles>**. |
 
-Each segment MUST specify `profileid`. If any segment does refer to a `profileid` not specified the same layer, the consumer **MUST** reject the layer.
+Each segment MUST specify `profileid`. If a segment refers to a `profileid` not declared in the same layer, the consumer **MUST** reject the layer.
 
 > **Note:** The `profileid` is purposefully not guaranteed to be globally unique, to ease implementation.
 
@@ -788,9 +788,9 @@ All segments are listed in document order within **\<segments>**. Segments that 
 
 | Name      | Type                       | Use      | Default | Annotation                                                            |
 | --------- | -------------------------- | -------- | ------- | --------------------------------------------------------------------- |
-| type      | **ST\_String**             | required |         | One of `loop`, `polyline`, `hatch` (planar), or `polyline3d`, `polyline6d` (non-planar). |
+| type      | **ST\_SegmentType**        | required |         | One of `loop`, `polyline`, `hatch` (planar), or `polyline3d`, `polyline6d` (non-planar). |
 | profileid | **ST\_PositiveInteger**    | required |         | Resolves via **\<profiles>** ([§1.1.2](#112-profiles)).              |
-| partid    | **ST\_PositiveInteger**    | optional |         | Resolves via **\<parts>** ([§1.1.1](#111-parts)).                    |
+| partid    | **ST\_PositiveInteger**    | required |         | Resolves via **\<parts>** ([§1.1.1](#111-parts)).                    |
 | laserindex | **ST\_NonNegativeInteger** | optional |         | Laser processes: overrides the `laserindex` of the referenced profile for this segment. If present, a consumer MUST use this value instead of the profile's `laserindex` to select the laser unit. If absent, the profile's `laserindex` applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
 | lasersync  | **ST\_PositiveInteger**   | optional |         | References the `id` of a **\<tp\:syncgroup>** declared under the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). Before this segment begins exposing, the consumer MUST wait until every laser listed in the referenced sync group has finished all exposures issued earlier in the layer on their respective tracks. If absent, no cross-laser barrier is imposed at this segment. MUST resolve to a declared sync group or the consumer **MUST** reject the layer. |
 | timeprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated execution time of this segment, in microseconds. This is the time the machine is expected to spend marking (exposing) the geometry contained in this segment. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
@@ -807,7 +807,7 @@ The _type_ attribute of a segment determines its acceptable XML child nodes.
 
 ![Layer Point XML Structure](images/layerpoint.png)
 
-For type `loop` and `polyline`, the segment MUST contain a non-empty list planar points.
+For type `loop` and `polyline`, the segment MUST contain a non-empty list of planar points.
 
 | Name      | Type            | Use      | Annotation                                                                                 |
 | --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
@@ -818,17 +818,17 @@ For type `loop` and `polyline`, the segment MUST contain a non-empty list planar
 | f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
 | g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
 | h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
-| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
-| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
-| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, `e2` MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, `f2` MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, `g2` MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, `h2` MUST be present, and vice versa. |
 
 
 **Child \<hatch> (planar)**
 
 ![Layer Hatch XML Structure](images/layerhatch.png)
 
-For type `hatch`, the segment MUST contain a non-empty list planar hatches.
+For type `hatch`, the segment MUST contain a non-empty list of planar hatches.
 
 | Name      | Type            | Use      | Annotation                                                                                 |
 | --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
@@ -851,7 +851,7 @@ For type `hatch`, the segment MUST contain a non-empty list planar hatches.
 
 ![Layer Point 3D XML Structure](images/layerpoint3d.png)
 
-For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
+For type `polyline3d`, the segment MUST contain a non-empty list of 3axis points.
 
 | Name      | Type            | Use      | Annotation                                                                                 |
 | --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
@@ -863,17 +863,17 @@ For type `polyline3d`, the segment MUST contain a non-empty list 3axis points.
 | f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
 | g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
 | h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
-| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
-| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
-| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, `e2` MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, `f2` MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, `g2` MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, `h2` MUST be present, and vice versa. |
 
 
 **Child \<point6d> (6axis)**
 
 ![Layer Point 6D XML Structure](images/layerpoint6d.png)
 
-For type `polyline6d`, the segment MUST contain a non-empty list 6axis points.
+For type `polyline6d`, the segment MUST contain a non-empty list of 6axis points.
 
 | Name      | Type            | Use      | Annotation                                                                                 |
 | --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
@@ -889,10 +889,10 @@ For type `polyline6d`, the segment MUST contain a non-empty list 6axis points.
 | f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
 | g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
 | h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
-| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, ´e2´ MUST be present, and vice versa. |
-| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, ´f2´ MUST be present, and vice versa. |
-| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, ´g2´ MUST be present, and vice versa. |
-| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
+| e1, e2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `e` is present. If `e1` is given, `e2` MUST be present, and vice versa. |
+| f1, f2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `f` is present. If `f1` is given, `f2` MUST be present, and vice versa. |
+| g1, g2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `g` is present. If `g1` is given, `g2` MUST be present, and vice versa. |
+| h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, `h2` MUST be present, and vice versa. |
 
 
 ### 1.2.2 Parallel Execution and Laser Synchronization
@@ -927,7 +927,7 @@ The `<point>` children of a polyline segment use the same attributes as the plan
 **Example** — an open polyline of three points (two connected line segments):
 
 ```xml
-<segment type="polyline" profileid="1">
+<segment type="polyline" profileid="1" partid="1">
   <point x="0" y="0"/>
   <point x="10000" y="0"/>
   <point x="10000" y="5000"/>
@@ -941,7 +941,7 @@ A **loop** is a closed polygon executed as a single continuous mark. Closure is 
 
 **Children**
 
-* Three or more **\<point>** element (MUST be ≥ 3).
+* Three or more **\<point>** elements (MUST be ≥ 3).
 
 **Child \<point> (planar)**
 
@@ -950,7 +950,7 @@ The `<point>` children of a loop segment use the same attributes as the planar `
 **Example** — a triangular loop; the first vertex is not repeated, the closing edge from the last point back to the first is implied:
 
 ```xml
-<segment type="loop" profileid="1">
+<segment type="loop" profileid="1" partid="1">
   <point x="0" y="0"/>
   <point x="10000" y="0"/>
   <point x="5000" y="8000"/>
@@ -975,7 +975,7 @@ The `<hatch>` children of a hatch segment use the attributes defined for the pla
 **Example** — two independent, parallel hatch lines (the move between them is a non-marking jump):
 
 ```xml
-<segment type="hatch" profileid="2">
+<segment type="hatch" profileid="2" partid="1">
   <hatch x1="0" y1="0" x2="10000" y2="0"/>
   <hatch x1="0" y1="200" x2="10000" y2="200"/>
 </segment>
@@ -1009,7 +1009,7 @@ The `<point3d>` children of a 3-axis polyline use the attributes defined for `<p
 **Example** — an open 3-axis polyline climbing in Z (requires `toolpathtype="3axis"`):
 
 ```xml
-<segment type="polyline3d" profileid="1">
+<segment type="polyline3d" profileid="1" partid="1">
   <point3d x="0" y="0" z="0"/>
   <point3d x="10000" y="0" z="500"/>
   <point3d x="20000" y="0" z="1000"/>
@@ -1035,7 +1035,7 @@ The `<point6d>` children of a 6-axis polyline use the attributes defined for `<p
 **Example** — an open 6-axis polyline; each point carries an orientation quaternion (here the identity orientation `w=1`), requires `toolpathtype="6axis"`:
 
 ```xml
-<segment type="polyline6d" profileid="1">
+<segment type="polyline6d" profileid="1" partid="1">
   <point6d x="0" y="0" z="0" i="0" j="0" k="0" w="1"/>
   <point6d x="10000" y="0" z="500" i="0" j="0" k="0" w="1"/>
 </segment>
@@ -1432,7 +1432,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:choice>
 		<xs:attribute name="type" type="ST_SegmentType" use="required"/>
 		<xs:attribute name="profileid" type="ST_PositiveInteger" use="required"/>
-		<xs:attribute name="partid" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="partid" type="ST_PositiveInteger" use="required"/>
 		<xs:attribute name="laserindex" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="lasersync" type="ST_PositiveInteger" use="optional"/>
 		<xs:attribute name="timeprediction" type="ST_NonNegativeInteger" use="optional"/>

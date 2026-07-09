@@ -167,7 +167,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:choice>
 		<xs:attribute name="type" type="ST_SegmentType" use="required"/>
 		<xs:attribute name="profileid" type="ST_PositiveInteger" use="required"/>
-		<xs:attribute name="partid" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="partid" type="ST_PositiveInteger" use="required"/>
 		<xs:attribute name="laserindex" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="lasersync" type="ST_PositiveInteger" use="optional"/>
 		<xs:attribute name="timeprediction" type="ST_NonNegativeInteger" use="optional"/>
