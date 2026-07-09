@@ -534,7 +534,7 @@ Element **\<tp:toolpathlayer>**
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| ztop | **ST\_PositiveInteger** | conditional |   | Top Z value of this layer, in device units. REQUIRED for planar toolpaths and MUST be omitted for non-planar toolpaths. (The schema declares it optional because this condition cannot be expressed in XSD.) MUST be greater than or equal to `zbottom`, as well as the `ztop` of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the intended behavior. |
+| ztop | **ST\_NonNegativeInteger** | conditional |   | Top Z value of this layer, in device units. REQUIRED for planar toolpaths and MUST be omitted for non-planar toolpaths. (The schema declares it optional because this condition cannot be expressed in XSD.) MUST be greater than or equal to `zbottom`, as well as the `ztop` of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the intended behavior. |
 | path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer` declared from the **\<tp\:toolpathresource>** part (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
 
 
@@ -632,7 +632,7 @@ Declares a named set of lasers that participate in a synchronization barrier. Se
 | Name   | Type            | Use      | Annotation |
 | ------ | --------------- | -------- | ---------- |
 | id     | **ST\_PositiveInteger** | required | Unique identifier for this sync group within **\<tp\:lasersources>**. Referenced by `lasersync` on segments. MUST be unique among all **\<tp\:syncgroup>** siblings. |
-| lasers | **ST\_String**  | required | Space-separated list of **ST\_NonNegativeInteger** values. Each entry MUST be the `index` of a declared **\<tp\:lasersource>**. |
+| lasers | **ST\_LaserIndexList** | required | Space-separated list of **ST\_NonNegativeInteger** values. Each entry MUST be the `index` of a declared **\<tp\:lasersource>**. |
 
 #### Conformance
 
