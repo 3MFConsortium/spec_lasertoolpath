@@ -30,7 +30,7 @@
 
 - [Chapter 1. Overview of Additions](#chapter-1-overview-of-additions)
   - [Additions to the core model schema](#additions-to-the-core-model-schema)
-- [Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.](#chapter-2-planar-toolpathes-and-3-axis-to-6-axis-deposition-toolpathes)
+- [Chapter 2. Planar Toolpaths and 3-Axis to 6-Axis Deposition Toolpaths](#chapter-2-planar-toolpaths-and-3-axis-to-6-axis-deposition-toolpaths)
   - [2.1 Planar Toolpaths](#21-planar-toolpaths)
   - [2.2 Multi Axis Deposition Toolpaths (3-6 axes)](#22-multi-axis-deposition-toolpaths-3-6-axes)
   - [2.3 Machine specific profile codecs](#23-machine-specific-profile-codecs)
@@ -178,7 +178,7 @@ No other core elements are modified. The relationship between the new and existi
 The formal schema deltas for **CT_Resources** and **\<build>** are given in [Appendix B.1](#appendix-b-3mf-xsd-schema).
 
 
-# Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.
+# Chapter 2. Planar Toolpaths and 3-Axis to 6-Axis Deposition Toolpaths
 
 Additive manufacturing systems employ a wide range of motion and exposure technologies, from traditional planar layer-by-layer approaches to advanced multi-axis deposition strategies. The 3MF Toolpath Extension is designed to represent both categories in a unified and extensible framework.
 
@@ -353,12 +353,12 @@ Element **\<tp:toolpathprofile>**
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
 | spotradius | **ST\_PositiveNumber** | optional  |  lpbf | Laser processes: Radius of the laser spot in mm. |
-| laserindex | **ST\_NonNegativeInteger** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** 
+| laserindex | **ST\_NonNegativeInteger** | optional  |  lpbf | Laser processes: index of the laser to be used. It selects a laser and MUST NOT be targeted by a **\<tp\:modifier>**, as it is not a modulatable numeric attribute. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>**. |
 | depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 | beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
 | beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
-| prewaittime | **ST\_PositiveNumber** | optional  |   | All processes: Additional wait time before the segment in microseconds. If used with overrides, the value of the first segment point MUST BE used. |
-| postwaittime | **ST\_PositiveNumber** | optional  |   | All processes: Additional wait time after the segment in microseconds. If used with overrides, the value of the last segment point MUST BE used. |
+| prewaittime | **ST\_PositiveNumber** | optional  |   | All processes: additional wait time before the segment in microseconds. If used with overrides, the value of the first segment point MUST be used. |
+| postwaittime | **ST\_PositiveNumber** | optional  |   | All processes: additional wait time after the segment in microseconds. If used with overrides, the value of the last segment point MUST be used. |
 
 The \<toolpathprofile\>-elements are used to specify the properties of a laser melting or deposition process. This specification declares the above list of generic values to use. A producer MUST ensure that all necessary profile values are properly declared for a specific application, or as enforced by a profile codec.
 
@@ -401,7 +401,7 @@ The `type` attribute selects how many factors an element carries and how they ar
 A profile carries a nominal `laserpower` of 200 W and declares that it MAY be modulated per hatch via the `f` factor, over the range 0–200 W:
 
 ```xml
-<tp:toolpathprofile id="10" name="contour-fill" laserpower="200">
+<tp:toolpathprofile uuid="54066b90-8346-402b-8bc9-7d7cfdd54686" name="contour-fill" laserpower="200">
   <tp:modifier attribute="laserpower" type="linear" factor="f" minvalue="0" maxvalue="200"/>
 </tp:toolpathprofile>
 ```
@@ -434,9 +434,9 @@ A **\<tp\:modifier>**:
 * **MUST** reference an attribute that already exists on the parent **\<tp\:toolpathprofile>** (including namespaced attributes).
 * **MUST** apply only to attributes with numeric value types (integer or floating-point).
 * **MUST** define a closed range \[**minvalue**, **maxvalue**] in the same units as the target attribute.
-* **MAY** be declared multiple times in a profile, but **at most one** modifier **MUST** target a given attribute within that profile.
-* A profile **MAY** carry up to 4 modifiers, each being identified a specific unique factor type (`"e"`, `"f"`, `"g"`, and `"h"`).
-* Attribute modifications on a hatch line are supposed to be be parametrized in _position_ (i.e. geometric), but not in _time_.
+* **MAY** be declared multiple times in a profile, but **no more than one** modifier may target a given attribute within that profile.
+* A profile **MUST NOT** carry more than four modifiers, each identified by a unique factor (`"e"`, `"f"`, `"g"`, or `"h"`); the same factor **MUST NOT** be used by more than one modifier in the same profile.
+* Attribute modifications on a hatch line are supposed to be parametrized in _position_ (i.e. geometric), but not in _time_.
 
 ### Attributes
 
@@ -469,7 +469,7 @@ A producer MUST obey the following rules:
 
 ### Nonlinear Override Support Points
 
-For modifiers with `type="nonlinear"`, geometry elements (`<hatch>` or `<point>`) MAY contain one or more **\<sub>** child elements. Each **\<sub>** element defines a support point on a piecewise-linear interpolation curve along the geometry element.
+For modifiers with `type="nonlinear"`, geometry elements (`<hatch>`, `<point>`, `<point3d>`, or `<point6d>`) MAY contain one or more **\<sub>** child elements. Each **\<sub>** element defines a support point on a piecewise-linear interpolation curve along the geometry element.
 
 **Element \<sub>**
 
@@ -527,14 +527,14 @@ The \<toolpathlayers\> element contains a list of references to OPC packages tha
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| zbottom | **ST\_NonNegativeInteger** | required, if toolpathtype is "planar" |  0 | Bottom Z Value of the first layer. Not applicable for non-planar toolpaths. |
+| zbottom | **ST\_NonNegativeInteger** | optional | 0 | Bottom Z value of the first layer, in device units. Applies only to planar toolpaths and MUST be omitted for non-planar toolpaths. If omitted for a planar toolpath, the default value `0` applies. |
 
 
 Element **\<tp:toolpathlayer>**
 
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
-| ztop | **ST\_PositiveInteger** | required, if toolpathtype is "planar" |   | Not applicable for non-planar toolpaths. MUST be larger or equal than zbottom, as well as the ztop of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the indented behavior.  |
+| ztop | **ST\_PositiveInteger** | conditional |   | Top Z value of this layer, in device units. REQUIRED for planar toolpaths and MUST be omitted for non-planar toolpaths. (The schema declares it optional because this condition cannot be expressed in XSD.) MUST be greater than or equal to `zbottom`, as well as the `ztop` of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the intended behavior. |
 | path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer` declared from the **\<tp\:toolpathresource>** part (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
 
 
@@ -590,6 +590,10 @@ To keep 3MF packages self-contained and deterministic, consumers and producers M
 
 ## 4.5 Laser Sources
 
+
+![Toolpath Laser Sources XML Structure](images/lasersources.png)
+
+
 Multi-laser LPBF systems expose several independent scan fields. A consumer MUST be able to determine how many lasers a toolpath targets, each laser's addressable field, and how cross-laser synchronization is expressed **without reading layer data**. For that reason, laser capability is declared at the **\<tp\:toolpathresource>** level, not inside individual layer parts.
 
 Element **\<tp\:lasersources>** is an optional child of **\<tp\:toolpathresource>**. Producers SHOULD place it as the **first** child of **\<tp\:toolpathresource>** so consumers can read laser metadata before profiles or layer references.
@@ -623,7 +627,7 @@ Declares one laser scan field available to this toolpath.
 
 Element **\<tp\:syncgroup>**
 
-Declares a named set of lasers that participate in a synchronization barrier. Segments reference a sync group through the `lasersync` attribute (see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization)).
+Declares a named set of lasers that participate in a synchronization barrier. Segments reference a sync group through the `lasersync` attribute (see [§1.2.2 Parallel Execution and Laser Synchronization](#122-parallel-execution-and-laser-synchronization)).
 
 | Name   | Type            | Use      | Annotation |
 | ------ | --------------- | -------- | ---------- |
@@ -697,7 +701,7 @@ The attribute is written with the toolpath namespace prefix on the core element,
 
 This Part defines the representation of a toolpath layer and the rules for interpreting it. Unless noted otherwise, all coordinates are **integer device units** that MUST be converted to document units by multiplying with the parent **\<tp\:toolpathresource>**’s `unitfactor` (see Part I). Document units are those declared by the core model's `unit` attribute (see the 3MF Core Specification). It is RECOMMENDED that producers use document units of millimeters, so that toolpath coordinates are directly interpretable across consumers. Element and attribute names are case-sensitive.
 
-Execution order of geometry MUST be the document order. Consumers MUST NOT reorder segments, 
+Execution order of geometry MUST be the document order. Consumers MUST NOT reorder segments, points within a segment, or hatches within a segment, except where an explicit synchronization or scheduling mechanism defined by this extension (for example, laser sync groups) permits it.
 
 # Chapter 1 - Layer ASCII XML Structure
 
