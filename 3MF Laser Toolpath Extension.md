@@ -41,6 +41,8 @@
 - [Chapter 4. Toolpath Resource XML Structure](#chapter-4-toolpath-resource-xml-structure)
   - [4.1 Toolpath profiles](#41-toolpath-profiles)
   - [4.2 Toolpath profile modifiers](#42-toolpath-profile-modifiers)
+    - [Overview and rationale](#overview-and-rationale)
+    - [Example: per-hatch power modulation](#example-per-hatch-power-modulation)
   - [4.3 Toolpath layers](#43-toolpath-layers)
   - [4.4 Custom Toolpath Metadata](#44-custom-toolpath-metadata)
   - [4.5 Laser Sources](#45-laser-sources)
@@ -293,6 +295,8 @@ Each layer file contains geometry segments (e.g., loops, polylines, hatches) as 
 
 Each layer XML is referenced via an explicit OPC relationship from the main toolpath resource part. These relationships define the role, content type, and URI of each layer file. The root model (3dmodel.model) declares a relationship to the Toolpath Resource part, which in turn declares relationships to each layer.
 
+> **Note — scope of the "model".** For historic reasons the 3MF Core Specification names the root 3D payload part the *model* (`/3D/3dmodel.model`). In OPC packages the file name itself is not significant; the package structure is defined by relationships. Despite the name, this part is a container whose scope depends on context: it MAY describe a single part, a multi-part assembly, or a complete build-tray layout. In the toolpath context the generic and expected case is a **full tray assembly** — a layer describes the marking geometry for the entire build platform at a given Z, not for one part in isolation. Individual parts within that build are attributed through the optional per-segment `partid` reference (see [§1.1.1](#111-parts)), which binds regions of a layer back to the objects declared in the model. A layer therefore spans the whole build; `partid` is the mechanism that associates its geometry with individual parts.
+
 The OPC relationship type used to bind a toolpath resource part to each of its layer parts is:
 
 `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer`
@@ -375,6 +379,53 @@ In case of a custom profile value, the name MUST be namespaced with a properly d
 Element **\<tp\:modifier>**
 
  Modifiers enable granular control without duplicating full profiles.
+
+### Overview and rationale
+
+Base process parameters are carried by **\<tp\:toolpathprofile>** elements, analogous to the parameter sets of established machine formats (e.g., SLM). Modifiers add a controlled way to vary *one* numeric profile attribute along or across the geometry of a layer — for example, a per-hatch laser-power modulation — **without** embedding raw machine values (such as absolute watts) deep inside the layer data. Embedding such values directly would make it very hard for a machine to verify at load time whether it can actually build the file.
+
+Modifiers therefore introduce an **indirection**. Instead of writing an absolute value on each geometry element, the profile declares a modifier that maps the normalized interval [0, 1] onto a concrete value range [`minvalue`, `maxvalue`]. Each geometry element then carries only a dimensionless factor in [0, 1] (named `e`, `f`, `g`, or `h`). The value applied to an element is:
+
+    value = minvalue + factor × (maxvalue − minvalue)
+
+This design has two important properties:
+
+* **Bounded by construction.** Because factors are confined to [0, 1] and the range is declared once in the profile, a consumer can determine the worst-case value of a modulated attribute (e.g., "no hatch in this build will ever exceed 200 W") from the resource-level index alone, without parsing gigabytes of layer data.
+* **Checkable up front.** A consumer can inspect every declared modifier — its target attribute and its `type` — at load time and reject a file it cannot execute (for example, a scan-speed variation its scanner cannot realize) before committing to a build.
+
+Although the mechanism was designed for laser power, it is deliberately attribute-agnostic: the same indirection can modulate any numeric profile attribute that a producer and consumer agree upon.
+
+The `type` attribute selects how many factors an element carries and how they are interpreted:
+
+| `type`      | Factors per element  | Interpretation                                                                                                          |
+| ----------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `constant`  | one (e.g. `f`)       | A single value for the whole element.                                                                                   |
+| `linear`    | two (`f1`, `f2`)     | The value is modulated linearly from the start point (`f1`) to the end point (`f2`) of the element.                     |
+| `nonlinear` | two + support points | As `linear`, plus one or more **\<sub>** control points describing a piecewise-linear calibration curve along the element (see [Nonlinear Override Support Points](#nonlinear-override-support-points)). |
+
+#### Example: per-hatch power modulation
+
+A profile carries a nominal `laserpower` of 200 W and declares that it MAY be modulated per hatch via the `f` factor, over the range 0–200 W:
+
+```xml
+<tp:toolpathprofile id="10" name="contour-fill" laserpower="200">
+  <tp:modifier attribute="laserpower" type="linear" factor="f" minvalue="0" maxvalue="200"/>
+</tp:toolpathprofile>
+```
+
+In the layer data, individual hatches then carry only a dimensionless `f` factor — never absolute watts:
+
+```xml
+<!-- linear ramp along the line: 0 W -> 200 W -->
+<hatch x1="0" y1="0" x2="10000" y2="0" f1="0.0" f2="1.0"/>
+
+<!-- a single (less-granular) constant value is also permitted: 100 W across the line -->
+<hatch x1="0" y1="100" x2="10000" y2="100" f="0.5"/>
+```
+
+A consumer reading only the resource-level index sees `minvalue="0" maxvalue="200"` and can guarantee that no hatch in the build will exceed 200 W — and that `laserpower` is the only modulated attribute — before touching any layer geometry. Under a `linear` modifier an element MAY still carry a single constant `f`; a *less*-granular value is always permitted, and only values *more* granular than the declared `type` are forbidden (see the producer rules below).
+
+### Definition
 
 The **\<tp\:modifier>** element refines a parent **\<tp\:toolpathprofile>** by defining how one numeric profile attribute MAY be overridden *per geometry element* (e.g., per hatch line) or as a (linear or non-linear gradient) on a geometry element. The override is specified by a normalized scalar factor on those elements:
 
@@ -723,7 +774,11 @@ When present, **\<data>** appears after **\<profiles>** and before **\<segments>
 
 **Element \<segments>**
 
-Contains one or more **\<segment>** elements. Segments build a common wrapper class for types of toolpath geometry, and derive into specialist XML nodes, which then give proper information about.
+Contains one or more **\<segment>** elements.
+
+A **segment** is the generic container node for a single unit of toolpath content. Every **\<segment>** carries the common attributes below (geometry `type`, profile and part references, laser assignment, and timing hints) and derives into exactly one specialized geometry form that supplies the concrete point or line data — currently a `loop`, `polyline`, or `hatch` (planar), or a `polyline3d` / `polyline6d` (non-planar). Segments are the atomic building blocks of a layer: a layer's marking instructions are expressed entirely as an ordered list of segments.
+
+> **Note:** Additional geometry types (for example, arcs and Bézier curves) are anticipated in future revisions of this extension. They were intentionally deferred beyond the first release to keep the initial geometry set small and broadly implementable. A consumer MUST reject a layer that contains a segment `type` it does not recognize.
 
 All segments are listed in document order within **\<segments>**. Segments that share the same `laserindex` MUST be executed sequentially on that laser. Segments assigned to different `laserindex` values MAY be executed in parallel. Cross-laser ordering is unconstrained except at explicit synchronization barriers; see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization).
 
@@ -866,7 +921,7 @@ Open polyline executed as a continuous mark.
 
 ### 1.3.3 Loop Segment (planar)
 
-Closed polygon executed as a continuous mark. If the last point in the list is not the equal the closing segment from the last point to the first is **implied**. 
+A **loop** is a closed polygon executed as a single continuous mark. Closure is **implied by the segment `type`**: the point list gives each vertex exactly once, and a consumer MUST always connect the last **\<point>** back to the first to close the polygon. The first vertex SHOULD NOT be repeated as an explicit final point; if a producer does repeat it, the consumer MUST treat the duplicated final point as redundant (no zero-length closing move is inserted). The modifier factors and `tag` of the first point apply to this implied closing line.
 
 **Children**
 
