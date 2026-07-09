@@ -13,9 +13,9 @@
 
 
 
-| **Version** | 0.8 |
+| **Version** | 1.0 |
 | --- | --- |
-| **Status** | Draft |
+| **Status** | Release Candidate |
 
 ## Table of Contents
 
@@ -33,8 +33,7 @@
 - [Chapter 2. Planar toolpathes and 3-axis to 6 axis deposition toolpathes.](#chapter-2-planar-toolpathes-and-3-axis-to-6-axis-deposition-toolpathes)
   - [2.1 Planar Toolpaths](#21-planar-toolpaths)
   - [2.2 Multi Axis Deposition Toolpaths (3-6 axes)](#22-multi-axis-deposition-toolpaths-3-6-axes)
-  - [2.3 Interoperability and Use](#23-interoperability-and-use)
-  - [2.4 Machine specific profile codecs](#24-machine-specific-profile-codecs)
+  - [2.3 Machine specific profile codecs](#23-machine-specific-profile-codecs)
 - [Chapter 3. OPC Packet Structure](#chapter-3-opc-packet-structure)
   - [3.1 Layer-Scoped XML Parts](#31-layer-scoped-xml-parts)
   - [3.2 Relationships and Binding](#32-relationships-and-binding)
@@ -56,12 +55,15 @@
     - [1.1.2 Profiles](#112-profiles)
     - [1.1.3 Custom Layer Metadata](#113-custom-layer-metadata)
   - [1.2. Segment Data](#12-segment-data)
-    - [1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization)
+    - [1.2.1 Children of Segment](#121-children-of-segment)
+    - [1.2.2 Parallel Execution and Laser Synchronization](#122-parallel-execution-and-laser-synchronization)
   - [1.3. Planar Segment Data](#13-planar-segment-data)
-    - [1.3.1 Children of Segment](#131-children-of-segment)
-    - [1.3.2 Polyline Segment (planar)](#132-polyline-segment-planar)
-    - [1.3.3 Loop Segment (planar)](#133-loop-segment-planar)
-    - [1.3.4 Hatch Segment (planar)](#134-hatch-segment-planar)
+    - [1.3.1 Polyline Segment (planar)](#131-polyline-segment-planar)
+    - [1.3.2 Loop Segment (planar)](#132-loop-segment-planar)
+    - [1.3.3 Hatch Segment (planar)](#133-hatch-segment-planar)
+  - [1.4. Non-Planar Segment Data](#14-non-planar-segment-data)
+    - [1.4.1 Polyline Segment (3 axis)](#141-polyline-segment-3-axis)
+    - [1.4.2 Polyline Segment (6 axis)](#142-polyline-segment-6-axis)
 
 [Part III. Appendixes](#part-iii-appendixes)
 
@@ -223,11 +225,8 @@ Each axis mode introduces increasing geometric and processing complexity but all
 
 3MF supports both representations under the same <toolpathlayers> construct, allowing for a consistent approach to synchronization, metadata assignment, and profile referencing.
 
-## 2.3 Interoperability and Use
 
-The structure allows producers to define hybrid toolpaths combining planar and spatial segments. Consumers are expected to interpret the dimensionality and semantics of each toolpath element from its type and associated metadata. Implementers should ensure deterministic parsing and robust support for layer-specific attributes and profile overrides.
-
-## 2.4 Machine specific profile codecs
+## 2.3 Machine specific profile codecs
 
 While the Toolpath Extension defines a set of standardized profile parameters suitable for general use, Additive Manufacturing machines often require specialized, hardware-dependent instructions to fully utilize their capabilities. To accommodate this, the extension supports machine-specific profile codecs through the use of custom XML namespaces and schema-defined profile structures.
 
@@ -268,7 +267,7 @@ This mechanism ensures that 3MF remains extensible and practical for a wide rang
 
 The 3MF Toolpath Extension is structured using the Open Packaging Convention (OPC), allowing efficient organization, referencing, and streaming of toolpath data. The OPC architecture enables the separation of layer data, profiles, and binary geometry into modular, independently accessible parts.
 
-As a 3MF package is a container that serves multiple different use cases, a producer of a package that carries toolpath data for fabrication SHOULD name the file with a double extension `.build.3mf` (for example, `part.build.3mf`). This naming convention helps consumers and operators distinguish build-ready, toolpath-bearing packages from generic 3MF models at a glance. The convention is informative only: it MUST NOT be used as the sole means of detecting the toolpath extension, which is always declared through the required-extensions mechanism of the core specification.
+As a 3MF package is a container that serves multiple different use cases, a producer of a package that carries toolpath data for fabrication SHOULD name the file with a double extension `.build.3mf` (for example, `sls2736.build.3mf`). This naming convention helps consumers and operators distinguish build-ready, toolpath-bearing packages from generic 3MF models at a glance. The convention is informative only: it MUST NOT be used as the sole means of detecting the toolpath extension, which is always declared through the required-extensions mechanism of the core specification.
 
 ## 3.1 Layer-Scoped XML Parts
 
@@ -293,9 +292,9 @@ Each layer file contains geometry segments (e.g., loops, polylines, hatches) as 
 
 ## 3.2 Relationships and Binding
 
-Each layer XML is referenced via an explicit OPC relationship from the main toolpath resource part. These relationships define the role, content type, and URI of each layer file. The root model (3dmodel.model) declares a relationship to the Toolpath Resource part, which in turn declares relationships to each layer.
+Each layer XML is referenced via an explicit OPC relationship from the main toolpath resource part. These relationships define the role, content type, and URI of each layer file. The root model (e.g. 3dmodels.model) declares a relationship to the Toolpath Resource part, which in turn declares relationships to each layer.
 
-> **Note — scope of the "model".** For historic reasons the 3MF Core Specification names the root 3D payload part the *model* (`/3D/3dmodel.model`). In OPC packages the file name itself is not significant; the package structure is defined by relationships. Despite the name, this part is a container whose scope depends on context: it MAY describe a single part, a multi-part assembly, or a complete build-tray layout. In the toolpath context the generic and expected case is a **full tray assembly** — a layer describes the marking geometry for the entire build platform at a given Z, not for one part in isolation. Individual parts within that build are attributed through the optional per-segment `partid` reference (see [§1.1.1](#111-parts)), which binds regions of a layer back to the objects declared in the model. A layer therefore spans the whole build; `partid` is the mechanism that associates its geometry with individual parts.
+> **Note — scope of the "model".** For historic reasons the 3MF Core Specification names the root 3D payload part the *model* (e.g. stored in `/3D/3dmodels.model`). In OPC packages the file name itself is not significant; the package structure is defined by relationships. Despite the name, this part is a container whose scope depends on context: it MAY describe a single part, a multi-part assembly, or a complete build-tray layout. In the toolpath context the generic and expected case is a **full tray assembly** — a layer describes the marking geometry for the entire build platform at a given Z, not for one part in isolation. Individual parts within that build are attributed through the optional per-segment `partid` reference (see [§1.1.1](#111-parts)), which binds regions of a layer back to the objects declared in the model. A layer therefore spans the whole build; `partid` is the mechanism that associates its geometry with individual parts.
 
 The OPC relationship type used to bind a toolpath resource part to each of its layer parts is:
 
@@ -310,12 +309,6 @@ This structure ensures:
 
 - Compatibility with standard OPC parsers and tooling
 
-#### Example Relationship Flow
-
-    [3dmodel.model]
-       └── rels/toolpathresource.model (Toolpath Resource)
-               └── rels/layer00001.xml (Layer 1)
-               └── rels/layer00002.xml (Layer 2)
 
 #### Best Practices
 
@@ -338,7 +331,7 @@ Element **\<tp:toolpathresource>**
 | --- | --- | --- | --- | --- |
 | id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |
 | uuid | **ST\_UUID** | required |  | Global unique identifier . |
-| unitfactor | **ST\_Number** | required |  | Unit scaling factor to be applied to toolpath coordinates. In millimeters. |
+| unitfactor | **ST\_Number** | required |  | Unit scaling factor to be applied to toolpath coordinates. In document units (see 3MF Core Specification). |
 | toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
 
 ## 4.1 Toolpath profiles
@@ -360,7 +353,7 @@ Element **\<tp:toolpathprofile>**
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
 | spotradius | **ST\_PositiveNumber** | optional  |  lpbf | Laser processes: Radius of the laser spot in mm. |
-| laserindex | **ST\_NonNegativeInteger** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** when **\<tp\:lasersources>** is present. |
+| laserindex | **ST\_NonNegativeInteger** | optional  |  lpbf | Laser processes: ID of the laser to be used. MUST NOT be used with overrides. If absent on a segment, this value applies; if that is also absent, the **\<tp\:lasersources>** `default` applies (see [§4.5 Laser Sources](#45-laser-sources)). The resolved index MUST reference a declared **\<tp\:lasersource>** 
 | depositionspeed   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: speed at which the deposition head while extruding, measured in mm/s |
 | beadwidth   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Width of the deposited material. (approximated cross section) |
 | beadheight   | **ST\_PositiveNumber** | optional   | deposition | Deposition processes: Height of the deposited material. (approximated cross section) |
@@ -382,7 +375,7 @@ Element **\<tp\:modifier>**
 
 ### Overview and rationale
 
-Base process parameters are carried by **\<tp\:toolpathprofile>** elements, analogous to the parameter sets of established machine formats (e.g., SLM). Modifiers add a controlled way to vary *one* numeric profile attribute along or across the geometry of a layer — for example, a per-hatch laser-power modulation — **without** embedding raw machine values (such as absolute watts) deep inside the layer data. Embedding such values directly would make it very hard for a machine to verify at load time whether it can actually build the file.
+Base process parameters are carried by **\<tp\:toolpathprofile>** elements, analogous to the parameter sets of many established proprietary machine formats. Modifiers add a controlled way to vary *one* or *several* numeric profile attribute along or across the geometry of a layer — for example, a per-hatch laser-power modulation — **without** embedding raw machine values (such as absolute watts) deep inside the layer data. Embedding such values directly would make it very hard for a machine to verify at load time whether it can actually build the file.
 
 Modifiers therefore introduce an **indirection**. Instead of writing an absolute value on each geometry element, the profile declares a modifier that maps the normalized interval [0, 1] onto a concrete value range [`minvalue`, `maxvalue`]. Each geometry element then carries only a dimensionless factor in [0, 1] (named `e`, `f`, `g`, or `h`). The value applied to an element is:
 
@@ -413,7 +406,7 @@ A profile carries a nominal `laserpower` of 200 W and declares that it MAY be mo
 </tp:toolpathprofile>
 ```
 
-In the layer data, individual hatches then carry only a dimensionless `f` factor — never absolute watts:
+In the layer data, individual hatches then carry only a dimensionless `f` factor - never absolute watts:
 
 ```xml
 <!-- linear ramp along the line: 0 W -> 200 W -->
@@ -423,7 +416,7 @@ In the layer data, individual hatches then carry only a dimensionless `f` factor
 <hatch x1="0" y1="100" x2="10000" y2="100" f="0.5"/>
 ```
 
-A consumer reading only the resource-level index sees `minvalue="0" maxvalue="200"` and can guarantee that no hatch in the build will exceed 200 W — and that `laserpower` is the only modulated attribute — before touching any layer geometry. Under a `linear` modifier an element MAY still carry a single constant `f`; a *less*-granular value is always permitted, and only values *more* granular than the declared `type` are forbidden (see the producer rules below).
+A consumer reading only the resource-level index sees `minvalue="0" maxvalue="200"` and can guarantee that no hatch in the build will exceed 200 W - and that `laserpower` is the only modulated attribute — before touching any layer geometry. Under a `linear` modifier an element MAY still carry a single constant `f`; a *less*-granular value is always permitted, and only values *more* granular than the declared `type` are forbidden (see the producer rules below).
 
 ### Definition
 
@@ -442,6 +435,7 @@ A **\<tp\:modifier>**:
 * **MUST** apply only to attributes with numeric value types (integer or floating-point).
 * **MUST** define a closed range \[**minvalue**, **maxvalue**] in the same units as the target attribute.
 * **MAY** be declared multiple times in a profile, but **at most one** modifier **MUST** target a given attribute within that profile.
+* A profile **MAY** carry up to 4 modifiers, each being identified a specific unique factor type (`"e"`, `"f"`, `"g"`, and `"h"`).
 * Attribute modifications on a hatch line are supposed to be be parametrized in _position_ (i.e. geometric), but not in _time_.
 
 ### Attributes
@@ -457,11 +451,11 @@ A **\<tp\:modifier>**:
 
 >**Note:** The 3MF Toolpath specification deliberately restricts the applicable amount of modifiers per profile to four with a prescribed naming scheme. This allows implementers to find efficient data representations without taking too many special cases into consideration.
 
->**Note:** Many consumer applications do not have the technical capability to support modifiers at all, only on certain profile attributes or only certain modification types like constant overrides. The structure as defined in the 3MF specification allows consumers to check before printing.
+>**Note:** Many consumer applications do not have the technical capability to support modifiers at all, only on certain profile attributes or only certain modification types like constant overrides. 
 
-While loading a 3MF Toolpath file, any consumer MUST run a sanity check of all profile modifications in the document, and MUST reject any document that contains any modifier that is not supported by the consumer. 
+The structure as defined in the 3MF specification allows consumers to check before processing the toolpath data: While loading a 3MF Toolpath file, any consumer MUST run a sanity check of all profile modifications in the document, and MUST reject any document that contains any modifier that is not supported by the consumer. 
 
->**Note:** The intended primary use case of modifiers is to modulate laser properties that are location-dependent (like power ramps), and not influencing the movement trajectory directly (like speed ramps would). This specification allows both use cases, but a producer should be aware that the latter might be rejected by many consumers.
+>**Note:** The intended primary use case of modifiers is to modulate laser properties that are location-dependent (like power ramps or special localized delays), and not influencing the movement trajectory directly (like speed ramps would). This specification allows both use cases, but a producer should be aware that the latter might be rejected by many consumers.
 
 A producer MUST obey the following rules:
 
@@ -780,7 +774,7 @@ A **segment** is the generic container node for a single unit of toolpath conten
 
 > **Note:** Additional geometry types (for example, arcs and Bézier curves) are anticipated in future revisions of this extension. They were intentionally deferred beyond the first release to keep the initial geometry set small and broadly implementable. A consumer MUST reject a layer that contains a segment `type` it does not recognize.
 
-All segments are listed in document order within **\<segments>**. Segments that share the same `laserindex` MUST be executed sequentially on that laser. Segments assigned to different `laserindex` values MAY be executed in parallel. Cross-laser ordering is unconstrained except at explicit synchronization barriers; see [§1.2.1 Parallel Execution and Laser Synchronization](#121-parallel-execution-and-laser-synchronization).
+All segments are listed in document order within **\<segments>**. Segments that share the same `laserindex` MUST be executed sequentially on that laser. Segments assigned to different `laserindex` values MAY be executed in parallel. Cross-laser ordering is unconstrained except at explicit synchronization barriers; see [§1.2.2 Parallel Execution and Laser Synchronization](#122-parallel-execution-and-laser-synchronization).
 
 
 **Element \<segment>**
@@ -799,22 +793,7 @@ All segments are listed in document order within **\<segments>**. Segments that 
 
 A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces of a layer XML, or reject the layer.
 
-### 1.2.1 Parallel Execution and Laser Synchronization
-
-On multi-laser systems, each laser operates its own exposure track. Segments are ordered **per laser**: all segments with the same resolved `laserindex` MUST be executed in document order on that laser. Segments on different lasers MAY run concurrently; the specification does not prescribe relative timing between lasers except at explicit barriers.
-
-Synchronization between lasers is expressed through the `lasersync` attribute on **\<segment>**, which references a **\<tp\:syncgroup>** declared in the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). When a segment carries `lasersync`, the consumer MUST NOT begin exposing that segment until every laser in the referenced sync group has completed all exposures that were issued earlier in the same layer on their respective tracks.
-
-This attribute-based barrier is the normative mechanism for cross-laser synchronization. A dedicated `type="sync"` segment is **not** defined by this specification.
-
-## 1.3. Planar Segment Data
-
-
-Planar segments describe marking geometry in the XY plane of the layer. In this case Z is implied by the associated **\<tp\:toolpathlayer>** in the parent resource.
-
-Planar segment elements MUST NOT be used, if the **\<tp\:toolpathresource>**'s `toolpathtype` is not equal to `planar`.
-
-### 1.3.1 Children of Segment
+### 1.2.1 Children of Segment
 
 The _type_ attribute of a segment determines its acceptable XML child nodes. 
 
@@ -910,16 +889,37 @@ For type `polyline6d`, the segment MUST contain a non-empty list 6axis points.
 | h1, h2         | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1.  MUST NOT be given, if `h` is present. If `h1` is given, ´h2´ MUST be present, and vice versa. |
 
 
-### 1.3.2 Polyline Segment (planar)
+### 1.2.2 Parallel Execution and Laser Synchronization
 
-Open polyline executed as a continuous mark. 
+On multi-laser systems, each laser operates its own exposure track. Segments are ordered **per laser**: all segments with the same resolved `laserindex` MUST be executed in document order on that laser. Segments on different lasers MAY run concurrently; the specification does not prescribe relative timing between lasers except at explicit barriers.
+
+Synchronization between lasers is expressed through the `lasersync` attribute on **\<segment>**, which references a **\<tp\:syncgroup>** declared in the parent **\<tp\:toolpathresource>** (see [§4.5 Laser Sources](#45-laser-sources)). When a segment carries `lasersync`, the consumer MUST NOT begin exposing that segment until every laser in the referenced sync group has completed all exposures that were issued earlier in the same layer on their respective tracks.
+
+This attribute-based barrier is the normative mechanism for cross-laser synchronization. A dedicated `type="sync"` segment is **not** defined by this specification.
+
+## 1.3. Planar Segment Data
+
+
+Planar segments describe marking geometry in the XY plane of the layer. In this case Z is implied by the associated **\<tp\:toolpathlayer>** in the parent resource.
+
+Planar segment elements MUST NOT be used, if the **\<tp\:toolpathresource>**'s `toolpathtype` is not equal to `planar`.
+
+### 1.3.1 Polyline Segment (planar)
+
+A **polyline** is an open chain of connected line segments executed as a single continuous mark. The **\<point>** children are visited in document order, and a consumer marks a straight line from each point to the next. Unlike a loop, a polyline is **open**: no line is implied from the last point back to the first, and the first vertex is never repeated at the end.
+
+Each point other than the first "closes" the line arriving from the preceding point; the modifier factors and `tag` on a point therefore apply to that incoming line. The first point has no incoming line, so any modifier factors or `tag` on it are unused.
 
 **Children**
 
-* Two or more **\<point>** element (MUST be ≥ 2).
+* Two or more **\<point>** elements (MUST be ≥ 2).
+
+**Child \<point> (planar)**
+
+The `<point>` children of a polyline segment use the same attributes as the planar `<point>` defined in [§1.2.1](#121-children-of-segment). For a polyline, the "line that the point closes" is the line ending at that point.
 
 
-### 1.3.3 Loop Segment (planar)
+### 1.3.2 Loop Segment (planar)
 
 A **loop** is a closed polygon executed as a single continuous mark. Closure is **implied by the segment `type`**: the point list gives each vertex exactly once, and a consumer MUST always connect the last **\<point>** back to the first to close the polygon. The first vertex SHOULD NOT be repeated as an explicit final point; if a producer does repeat it, the consumer MUST treat the duplicated final point as redundant (no zero-length closing move is inserted). The modifier factors and `tag` of the first point apply to this implied closing line.
 
@@ -929,51 +929,63 @@ A **loop** is a closed polygon executed as a single continuous mark. Closure is 
 
 **Child \<point> (planar)**
 
-The `<point>` children of a loop segment use the same attributes as the planar `<point>` defined in [§1.3.1](#131-children-of-segment). For a loop, the "line that the point closes" is the line ending at that point, and the closing line from the last point back to the first inherits the modifier factors and `tag` of the first point.
-
-| Name      | Type            | Use      | Annotation                                                                                 |
-| --------- | --------------- | -------- | ------------------------------------------------------------------------------------------ |
-| x         | **ST\_Integer** | required | X coordinate (device units).                                                               |
-| y         | **ST\_Integer** | required | Y coordinate (device units).                                                               |
-| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for the line that the point closes. The tag of the first point in the list attaches to the closure of the loop, should it be needed. Tags have no direct meaning, but MAY be referenced from Metadata. |
-| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `e1` or `e2` are present. |
-| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
-| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
-| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
-| e1, e2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `e` is present. If `e1` is given, `e2` MUST be present, and vice versa. |
-| f1, f2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `f` is present. If `f1` is given, `f2` MUST be present, and vice versa. |
-| g1, g2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `g` is present. If `g1` is given, `g2` MUST be present, and vice versa. |
-| h1, h2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier for the line that the point closes. MUST be a number value between 0 and 1. MUST NOT be given, if `h` is present. If `h1` is given, `h2` MUST be present, and vice versa. |
+The `<point>` children of a loop segment use the same attributes as the planar `<point>` defined in [§1.2.1](#121-children-of-segment). For a loop, the "line that the point closes" is the line ending at that point, and the closing line from the last point back to the first inherits the modifier factors and `tag` of the first point.
 
 
-### 1.3.4 Hatch Segment (planar)
+### 1.3.3 Hatch Segment (planar)
 
-Set of independent straight lines. Each line is executed separately; travel between lines is a **jump**.
+A **hatch** segment is a set of independent straight lines. Unlike a polyline or loop, the lines are **not** connected: each **\<hatch>** child defines its own start point (`x1`, `y1`) and end point (`x2`, `y2`) and is exposed on its own. The travel from the end of one hatch to the start of the next is a non-marking **jump**. Hatches are exposed in the document order of the **\<hatch>** children.
+
+Each hatch line carries its own modifier factors and `tag`, which apply to that line from its start point to its end point. There is no shared or implied connection between hatches, so no modifier factor or `tag` spans two lines.
 
 **Children**
 
-* One or more **\<hatch>**.
+* One or more **\<hatch>** elements (MUST be ≥ 1).
 
-**Child \<hatch>**
+**Child \<hatch> (planar)**
 
-| Name      | Type                       | Use      | Annotation                                                   |
-| --------- | -------------------------- | -------- | ------------------------------------------------------------ |
-| x1    | **ST\_Integer**            | required | x coordinate of the start point of the hatch (in device units).                                  |
-| y1    | **ST\_Integer**            | required | y coordinate of the start point of the hatch (in device units).                                  |
-| x2    | **ST\_Integer**            | required | x coordinate of the end point of the hatch (in device units).                                    |
-| y2    | **ST\_Integer**            | required | y coordinate of the end point of the hatch (in device units).                                    |
-| tag       | **ST\_NonNegativeInteger** | optional | Producer-defined marker for this line.                       |
-| e         | **ST\_ModifierScale** | optional | Scale factor for a constant `e` modifier for the hatch line. MUST be a number value between 0 and 1. MUST NOT be given, if `e1` or `e2` are present. |
-| f         | **ST\_ModifierScale** | optional | Scale factor for a constant `f` modifier for the hatch line. MUST be a number value between 0 and 1. MUST NOT be given, if `f1` or `f2` are present. |
-| g         | **ST\_ModifierScale** | optional | Scale factor for a constant `g` modifier for the hatch line. MUST be a number value between 0 and 1. MUST NOT be given, if `g1` or `g2` are present. |
-| h         | **ST\_ModifierScale** | optional | Scale factor for a constant `h` modifier for the hatch line. MUST be a number value between 0 and 1. MUST NOT be given, if `h1` or `h2` are present. |
-| e1, e2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `e` modifier from the start to the end point of the hatch. MUST be a number value between 0 and 1. MUST NOT be given, if `e` is present. If `e1` is given, `e2` MUST be present, and vice versa. |
-| f1, f2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `f` modifier from the start to the end point of the hatch. MUST be a number value between 0 and 1. MUST NOT be given, if `f` is present. If `f1` is given, `f2` MUST be present, and vice versa. |
-| g1, g2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `g` modifier from the start to the end point of the hatch. MUST be a number value between 0 and 1. MUST NOT be given, if `g` is present. If `g1` is given, `g2` MUST be present, and vice versa. |
-| h1, h2    | **ST\_ModifierScale** | optional | First and second scale factors for a linear `h` modifier from the start to the end point of the hatch. MUST be a number value between 0 and 1. MUST NOT be given, if `h` is present. If `h1` is given, `h2` MUST be present, and vice versa. |
+The `<hatch>` children of a hatch segment use the attributes defined for the planar `<hatch>` in [§1.2.1](#121-children-of-segment): the start and end coordinates (`x1`/`y1`, `x2`/`y2`), an optional `tag`, and the constant (`e`/`f`/`g`/`h`) or linear (`e1`/`e2` … `h1`/`h2`) modifier factors that modulate the line from its start to its end point.
 
----
 
+## 1.4. Non-Planar Segment Data
+
+Non-planar segments describe deposition geometry that is not confined to a single XY plane. Their applicability **depends on the toolpath type** declared on the parent **\<tp\:toolpathresource>**: a **\<segment>** of type `polyline3d` is valid only when `toolpathtype="3axis"`, and a segment of type `polyline6d` is valid only when `toolpathtype="6axis"`. A consumer MUST reject a layer that contains a non-planar segment whose type does not match the toolpath type.
+
+Because these segments carry an explicit `z` coordinate (and, for 6-axis, an orientation) on every point, the Z-height is **not** taken from the associated **\<tp\:toolpathlayer>** as it is for planar segments.
+
+> **Note — fast moves between disconnected marks.** If a higher-axis toolpath is not fully connected (for example, several separate `polyline3d` or `polyline6d` segments), this specification does not prescribe the trajectory of the non-marking move (jump) from the end of one segment to the start of the next; it is up to the consumer how to travel from point A to point B. A producer SHOULD avoid such disconnected transitions where possible, since the resulting motion is machine-dependent.
+
+### 1.4.1 Polyline Segment (3 axis)
+
+A **3-axis polyline** is an open chain of connected line segments in 3D space, executed as a single continuous mark. The **\<point3d>** children are visited in document order, and a consumer marks a straight line from each point to the next through their explicit `x`, `y`, `z` coordinates. Like a planar polyline, it is **open**: no line is implied from the last point back to the first, and the first vertex is never repeated at the end.
+
+Each point other than the first "closes" the line arriving from the preceding point; the modifier factors and `tag` on a point therefore apply to that incoming line. The first point has no incoming line, so any modifier factors or `tag` on it are unused.
+
+This segment type applies only to a toolpath with `toolpathtype="3axis"`.
+
+**Children**
+
+* Two or more **\<point3d>** elements (MUST be ≥ 2).
+
+**Child \<point3d> (3axis)**
+
+The `<point3d>` children of a 3-axis polyline use the attributes defined for `<point3d>` in [§1.2.1](#121-children-of-segment): the `x`, `y`, `z` coordinates, an optional `tag`, and the constant (`e`/`f`/`g`/`h`) or linear (`e1`/`e2` … `h1`/`h2`) modifier factors that apply to the line ending at that point.
+
+### 1.4.2 Polyline Segment (6 axis)
+
+A **6-axis polyline** is an open chain of connected line segments in 3D space in which each point additionally carries an orientation, executed as a single continuous mark. The **\<point6d>** children are visited in document order; a consumer marks a straight line from each point to the next through their explicit `x`, `y`, `z` coordinates while carrying the reference-frame orientation given by the quaternion values (`i`, `j`, `k`, `w`) at each point. Like a planar polyline, it is **open**: no line is implied from the last point back to the first, and the first vertex is never repeated at the end.
+
+Each point other than the first "closes" the line arriving from the preceding point; the modifier factors and `tag` on a point therefore apply to that incoming line. The first point has no incoming line, so any modifier factors or `tag` on it are unused.
+
+This segment type applies only to a toolpath with `toolpathtype="6axis"`.
+
+**Children**
+
+* Two or more **\<point6d>** elements (MUST be ≥ 2).
+
+**Child \<point6d> (6axis)**
+
+The `<point6d>` children of a 6-axis polyline use the attributes defined for `<point6d>` in [§1.2.1](#121-children-of-segment): the `x`, `y`, `z` coordinates, the quaternion orientation (`i`, `j`, `k`, `w`), an optional `tag`, and the constant (`e`/`f`/`g`/`h`) or linear (`e1`/`e2` … `h1`/`h2`) modifier factors that apply to the line ending at that point.
 
 
 # Part III. Appendixes
