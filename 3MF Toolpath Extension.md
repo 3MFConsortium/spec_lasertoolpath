@@ -1022,6 +1022,10 @@ A **6-axis polyline** is an open chain of connected line segments in 3D space in
 
 Each point other than the first "closes" the line arriving from the preceding point; the modifier factors and `tag` on a point therefore apply to that incoming line. The first point has no incoming line, so any modifier factors or `tag` on it are unused.
 
+**Orientation as a reference frame.** The quaternion (`i`, `j`, `k`, `w`) carried by a **\<point6d>** is a unit quaternion that encodes a rotation of the machine (world) coordinate system. Applied to the machine axes, that rotation defines a canonical, right-handed orthonormal **reference frame** — a local coordinate system — anchored at the point: it maps the global X, Y, and Z axes onto three mutually perpendicular unit vectors that fix the tool (or deposition-head) orientation there. Each **\<point6d>** therefore specifies a complete pose — a position *and* an orientation — so that the six degrees of freedom (three translational from `x`, `y`, `z`; three rotational from the quaternion) are captured together, with no separate angle convention or axis ordering to agree upon. Producers SHOULD emit unit quaternions (`i² + j² + k² + w² = 1`); a consumer SHOULD normalize on read to absorb rounding, and MUST reject a point whose quaternion is not normalizable (e.g. all-zero).
+
+**Interpolation along the toolpath.** Because orientation is stored as a quaternion rather than as raw angles, it interpolates naturally along each line, in step with the straight-line interpolation of `x`, `y`, `z`. Between two consecutive points a consumer MAY linearly interpolate the four quaternion components and renormalize the result to unit length at each sample (normalized linear interpolation, "nlerp"); this is inexpensive and yields a smooth, singularity-free sweep of the reference frame from the start orientation to the end orientation, avoiding the gimbal-lock and wrap-around problems of interpolating Euler angles. Since a quaternion and its negation (`q` and `−q`) denote the same orientation, a consumer MUST interpolate along the shorter arc by negating one endpoint when the dot product of the two endpoint quaternions is negative.
+
 This segment type applies only to a toolpath with `toolpathtype="6axis"`.
 
 **Children**
@@ -1046,33 +1050,81 @@ The `<point6d>` children of a 6-axis polyline use the attributes defined for `<p
 
 ## Appendix A. Glossary
 
-**3D model.** The markup that defines a model for output.
+**3MF.** The 3D Manufacturing Format, defining one or more 3D objects intended for output to a physical form.
 
-**3D Model part.** The OPC part that contains a 3D model.
+**3MF Document.** The digital manifestation of an OPC package that contains a 3D payload conforming to the 3MF specification.
 
-**3D Texture part.** A file used to apply complex information to a 3D object in the 3D Model part. In this extension spec, it is specifically a TBMP file.
+**Model document.** The core `3dmodel.model` part. It may represent a single part, an assembly, or a full build tray, and hosts the **\<tp\:toolpathresource>** resource(s) added by this extension.
 
-**3MF.** The 3D Manufacturing Format described by this specification, defining one or more 3D objects intended for output to a physical form.
+**Consumer.** A software, service, or device that reads a 3MF Document (here, one that interprets and/or fabricates toolpath data).
 
-**3MF Document.** The digital manifestation of an OPC package that contains a 3D payload that conforms with the 3MF specification.
+**Producer.** A software, service, or device that writes a 3MF Document.
 
-**Composite material.** A material that is comprised of a ratio of other materials.
+**Editor.** A software, service, or device that both reads and writes 3MF Documents, possibly changing the content in between.
 
-**Consumer.** A software, service, or device that reads in a 3MF Document.
+**Resource.** An object, material, or other entity in the model document that may be referenced to build a physical 3D object. This extension adds the toolpath resource.
 
-**Editor.** A software, service, or device that both reads in and writes out 3MF Documents, possibly changing the content in between.
+**OPC / OPC part.** The Open Packaging Conventions container (a ZIP archive) and its individually addressable members. Layer data is stored in separate OPC parts referenced from the toolpath resource.
 
-**Material.** The description of a physical substance that can be used to output an object.
+**Production extension.** The 3MF extension that provides referenceable UUIDs. A producer using the Toolpath Extension MUST also declare the Production Extension as required.
 
-**Material resource.** A potential resource that might be referenced by an object to describe what the object will be made of.
+**Toolpath Extension.** The extension defined by this specification, describing toolpath-based fabrication (motion and exposure) on top of the 3MF core.
 
-**Producer.** A software, service, or device that writes out a 3MF Document.
+**Toolpath resource.** The **\<tp\:toolpathresource>** element in the model document. Collects toolpath profiles, per-layer references, and optional laser-source metadata for one fabrication process.
 
-**Resource.** A texture, color, material, action, or object that could be used by another resource or might be necessary to build a physical 3D object according to build instructions.
+**Toolpath type.** The `toolpathtype` of a toolpath resource: `planar`, `3axis`, or `6axis`. It governs which segment geometries are valid.
 
-**Texture resource.** A resource that describes a subset of the 3D data to be used and how it is to be tiled.
+**Toolpath profile.** A **\<tp\:toolpathprofile>** element carrying named process parameters (e.g. `laserpower`, `laserspeed`) that convert geometry into machine instructions.
 
-**XML namespace.** A namespace declared on the \<model> element, in accordance with the XML Namespaces specification.
+**Profile codec.** A machine-specific, namespaced profile structure that encodes vendor- or hardware-specific instructions beyond the standardized profile parameters.
+
+**Modifier.** A **\<tp\:modifier>** on a profile that maps the normalized interval [0, 1] onto a value range [`minvalue`, `maxvalue`], allowing one numeric attribute to be varied per geometry element without embedding absolute machine values.
+
+**Modifier factor.** A dimensionless scalar in [0, 1] (`e`, `f`, `g`, or `h`) carried by a geometry element and mapped to a concrete value through a modifier.
+
+**Support point.** A **\<sub>** child of a geometry element defining a factor value at a parametric position `t` (0 < t < 1) along the element, used to build a piecewise-linear (`nonlinear`) modifier curve.
+
+**Layer (toolpath layer).** A single build layer, referenced by **\<tp\:toolpathlayer>** and stored as a separate **\<layer>** OPC part containing that layer's geometry and metadata.
+
+**Layer part.** The OPC XML part (e.g. `/Toolpath/Layers/layer00001.xml`) whose root element is **\<layer>**.
+
+**Segment.** A **\<segment>** element: the generic container for one unit of toolpath content, carrying common attributes (`type`, `profileid`, `partid`, …) and exactly one geometry form (`loop`, `polyline`, `hatch`, `polyline3d`, or `polyline6d`).
+
+**Loop.** A closed polygon segment; closure from the last point back to the first is implied by the segment `type`.
+
+**Polyline.** An open chain of connected line segments executed as a single continuous mark.
+
+**Hatch.** A segment consisting of independent, unconnected lines; travel between consecutive hatches is a non-marking jump.
+
+**Jump.** A non-marking repositioning move (e.g. between hatches or disconnected segments); its trajectory is machine-dependent.
+
+**Planar toolpath.** A toolpath whose geometry lies in discrete XY layers; Z is taken from the associated **\<tp\:toolpathlayer>**.
+
+**Non-planar toolpath.** A 3-axis or 6-axis toolpath whose points carry explicit `z` (and, for 6-axis, orientation), so Z is not taken from the layer.
+
+**Part reference (`partid`).** The required per-layer integer that binds a segment's geometry to a **\<part>** declared in the same layer.
+
+**Profile reference (`profileid`).** The required per-layer integer that binds a segment to a **\<profile>** declared in the same layer.
+
+**Device units.** The integer coordinate space used throughout layer data. Device-unit coordinates are converted to document units by multiplying by the resource `unitfactor`.
+
+**Document units.** The physical length units declared by the core model's `unit` attribute. Producers are RECOMMENDED to use millimeters.
+
+**Unit factor.** The `unitfactor` attribute of the toolpath resource: the scaling factor applied to integer device-unit coordinates to obtain lengths in document units.
+
+**Laser source.** A **\<tp\:lasersource>** declaring one addressable laser scan field (its `index`, `name`, and optional bounds, center, and `cornerradius`).
+
+**Laser index.** The `laserindex` value (non-negative; `0` is valid) selecting which declared laser source a profile or segment uses.
+
+**Scan field.** The addressable region of a laser source, given by the optional bounds group (`minx`/`maxx`/`miny`/`maxy`), optionally rounded by `cornerradius`.
+
+**Corner radius.** The optional `cornerradius` that rounds the corners of a rectangular scan field, up to a fully rounded field (a circle on a square field) at half the shorter side.
+
+**Sync group.** A **\<tp\:syncgroup>** naming a set of laser indices that participate in a synchronization barrier.
+
+**Laser synchronization (barrier).** The cross-laser wait expressed by the `lasersync` attribute on a segment: before exposing, the consumer waits until every laser in the referenced sync group has finished all earlier exposures in the layer.
+
+**XML namespace.** A namespace declared on the **\<model>** element (for the model document) or the **\<layer>** element (for layer parts), in accordance with the XML Namespaces specification.
 
 ## Appendix B. 3MF XSD Schema
 
