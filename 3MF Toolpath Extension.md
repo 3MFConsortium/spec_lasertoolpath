@@ -1022,9 +1022,64 @@ A **6-axis polyline** is an open chain of connected line segments in 3D space in
 
 Each point other than the first "closes" the line arriving from the preceding point; the modifier factors and `tag` on a point therefore apply to that incoming line. The first point has no incoming line, so any modifier factors or `tag` on it are unused.
 
+![Interpolated Quaternion reference frame](images/quaternionreferenceframe.png)
+
 **Orientation as a reference frame.** The quaternion (`i`, `j`, `k`, `w`) carried by a **\<point6d>** is a unit quaternion that encodes a rotation of the machine (world) coordinate system. Applied to the machine axes, that rotation defines a canonical, right-handed orthonormal **reference frame** — a local coordinate system — anchored at the point: it maps the global X, Y, and Z axes onto three mutually perpendicular unit vectors that fix the tool (or deposition-head) orientation there. Each **\<point6d>** therefore specifies a complete pose — a position *and* an orientation — so that the six degrees of freedom (three translational from `x`, `y`, `z`; three rotational from the quaternion) are captured together, with no separate angle convention or axis ordering to agree upon. Producers SHOULD emit unit quaternions (`i² + j² + k² + w² = 1`); a consumer SHOULD normalize on read to absorb rounding, and MUST reject a point whose quaternion is not normalizable (e.g. all-zero).
 
 **Interpolation along the toolpath.** Because orientation is stored as a quaternion rather than as raw angles, it interpolates naturally along each line, in step with the straight-line interpolation of `x`, `y`, `z`. Between two consecutive points a consumer MAY linearly interpolate the four quaternion components and renormalize the result to unit length at each sample (normalized linear interpolation, "nlerp"); this is inexpensive and yields a smooth, singularity-free sweep of the reference frame from the start orientation to the end orientation, avoiding the gimbal-lock and wrap-around problems of interpolating Euler angles. Since a quaternion and its negation (`q` and `−q`) denote the same orientation, a consumer MUST interpolate along the shorter arc by negating one endpoint when the dot product of the two endpoint quaternions is negative.
+
+#### Computing with the quaternion (informative)
+
+The formulas below make the two paragraphs above explicit. Throughout, a point's quaternion is `q = (i, j, k, w)` with vector part `(i, j, k)` and scalar part `w`, matching the attribute order on **\<point6d>**. This is the convention illustrated below: `q` rotates the world frame (X, Y, Z) into the local tool frame (x′, y′, z′).
+
+
+**1. Checking and restoring normalization.** The squared norm of a quaternion is
+
+```text
+‖q‖² = i² + j² + k² + w²
+```
+
+The quaternion is normalized (a *unit* quaternion) when `‖q‖² = 1`. A consumer SHOULD accept a small tolerance ε to absorb rounding, i.e. treat `q` as normalized when `|‖q‖² − 1| ≤ ε` (for example ε = 1e−6). If it is not normalized but `‖q‖ > 0`, divide every component by the norm:
+
+```text
+‖q‖ = sqrt(i² + j² + k² + w²)
+q̂   = (i, j, k, w) / ‖q‖
+```
+
+If `‖q‖ = 0` (e.g. an all-zero quaternion) the orientation is undefined and cannot be normalized; such a point MUST be rejected (see above).
+
+**2. Computing the reference frame.** For a unit quaternion `q = (i, j, k, w)`, the rotation matrix `R` whose columns are the local axes `x′, y′, z′` expressed in world coordinates is
+
+```text
+      | 1 − 2(j² + k²)     2(ij − kw)       2(ik + jw)   |
+R  =  |   2(ij + kw)     1 − 2(i² + k²)     2(jk − iw)   |
+      |   2(ik − jw)       2(jk + iw)     1 − 2(i² + j²) |
+```
+
+so the three orthonormal basis vectors of the local frame are the columns of `R`:
+
+```text
+x′ = ( 1 − 2(j² + k²),   2(ij + kw),     2(ik − jw)   )   (local X, red)
+y′ = ( 2(ij − kw),     1 − 2(i² + k²),   2(jk + iw)   )   (local Y, green)
+z′ = ( 2(ik + jw),       2(jk − iw),   1 − 2(i² + j²) )   (local Z, blue)
+```
+
+(If `q` is not exactly a unit quaternion, normalize it first per step 1; otherwise the axes are not orthonormal.)
+
+**3. nlerp between two quaternions.** To interpolate orientation between an endpoint quaternion `q_a` and `q_b` at parameter `λ ∈ [0, 1]` (the same `λ` used for the linear position blend `P(λ) = (1 − λ)·P_a + λ·P_b`):
+
+```text
+d = dot(q_a, q_b) = i_a·i_b + j_a·j_b + k_a·k_b + w_a·w_b
+
+# shorter-arc fix: flip one endpoint if the dot product is negative
+if d < 0:  q_b ← −q_b        (negate all four components)
+
+# component-wise linear blend, then renormalize to unit length
+q(λ) = (1 − λ)·q_a + λ·q_b
+q̂(λ) = q(λ) / ‖q(λ)‖
+```
+
+`q̂(λ)` is the interpolated orientation at fractional distance `λ` along the line; it equals `q_a` at `λ = 0` and `q_b` at `λ = 1` (up to the sign flip, which denotes the same orientation).
 
 This segment type applies only to a toolpath with `toolpathtype="6axis"`.
 
@@ -1132,17 +1187,30 @@ This appendix defines the normative XSD for the Toolpath Extension. [B.1](#b1-ad
 
 ### B.1 Additions to core types
 
-The Toolpath Extension adds a new resource type to the core **CT_Resources** group and an optional attribute to the core **\<build>** element. The following deltas are expressed against the core 3MF schema and use the toolpath namespace prefix `tp`.
+The Toolpath Extension adds a new resource (**\<tp\:toolpathresource>**) to the core **CT_Resources** type and an optional attribute to the core **\<build>** element. The following deltas are expressed against the core 3MF schema and use the toolpath namespace prefix `tp`.
 
 ```xml
-<!-- Delta to the core CT_Resources group: a 3MF document MAY contain one or
-     more toolpath resources among its resources. -->
-<xs:group name="CT_Resources">
+<!-- Delta to the core CT_Resources type: a 3MF document MAY contain one or
+     more toolpath resources among its resources. The core type is a sequence
+     of a leading choice (base materials and foreign/extension resources)
+     followed by the objects; a toolpath resource is one of the extension
+     resources admitted by that leading choice, so it MUST appear before the
+     <object> elements. It is shown explicitly here for clarity, although as a
+     foreign-namespaced element it is also matched by the choice's ##other
+     wildcard. Repetition uses maxOccurs="2147483647" (2^31 − 1) rather than
+     "unbounded", matching the core schema and keeping resource counts within
+     the signed 32-bit index range. -->
+<xs:complexType name="CT_Resources">
   <xs:sequence>
-    <!-- ... existing core resource elements ... -->
-    <xs:element ref="tp:toolpathresource" minOccurs="0" maxOccurs="unbounded"/>
+    <xs:choice minOccurs="0" maxOccurs="2147483647">
+      <!-- ... existing core resource elements, e.g. basematerials ... -->
+      <xs:element ref="tp:toolpathresource" minOccurs="0" maxOccurs="2147483647"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
+    </xs:choice>
+    <xs:element ref="object" minOccurs="0" maxOccurs="2147483647"/>
   </xs:sequence>
-</xs:group>
+  <xs:anyAttribute namespace="##other" processContents="lax"/>
+</xs:complexType>
 
 <!-- Delta to the core <build> element: optional attribute selecting which
      toolpath resource to fabricate. The attribute is declared globally in B.2. -->
@@ -1315,14 +1383,14 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="toolpathprofiles" type="CT_ToolpathProfiles"/>
 	<xs:complexType name="CT_ToolpathProfiles">
 		<xs:sequence>
-			<xs:element ref="toolpathprofile" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="toolpathprofile" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 	</xs:complexType>
 
 	<xs:element name="toolpathprofile" type="CT_ToolpathProfile"/>
 	<xs:complexType name="CT_ToolpathProfile">
 		<xs:sequence>
-			<xs:element ref="modifier" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="modifier" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
 		<xs:attribute name="name" type="ST_String" use="required"/>
@@ -1354,7 +1422,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="toolpathlayers" type="CT_ToolpathLayers"/>
 	<xs:complexType name="CT_ToolpathLayers">
 		<xs:sequence>
-			<xs:element ref="toolpathlayer" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="toolpathlayer" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="zbottom" type="ST_NonNegativeInteger" use="optional" default="0"/>
 	</xs:complexType>
@@ -1370,7 +1438,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="toolpathdata" type="CT_ToolpathData"/>
 	<xs:complexType name="CT_ToolpathData">
 		<xs:sequence>
-			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -1378,8 +1446,8 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="lasersources" type="CT_LaserSources"/>
 	<xs:complexType name="CT_LaserSources">
 		<xs:sequence>
-			<xs:element ref="lasersource" minOccurs="1" maxOccurs="unbounded"/>
-			<xs:element ref="syncgroup" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="lasersource" minOccurs="1" maxOccurs="2147483647"/>
+			<xs:element ref="syncgroup" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="default" type="ST_NonNegativeInteger" use="optional"/>
 	</xs:complexType>
@@ -1429,7 +1497,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="parts" type="CT_Parts"/>
 	<xs:complexType name="CT_Parts">
 		<xs:sequence>
-			<xs:element ref="part" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="part" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 	</xs:complexType>
 
@@ -1442,7 +1510,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="profiles" type="CT_Profiles"/>
 	<xs:complexType name="CT_Profiles">
 		<xs:sequence>
-			<xs:element ref="profile" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="profile" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 	</xs:complexType>
 
@@ -1456,7 +1524,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="data" type="CT_LayerData"/>
 	<xs:complexType name="CT_LayerData">
 		<xs:sequence>
-			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -1464,7 +1532,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="segments" type="CT_Segments"/>
 	<xs:complexType name="CT_Segments">
 		<xs:sequence>
-			<xs:element ref="segment" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="segment" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -1475,7 +1543,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		     <point> for planar, <point3d>/<point6d> for 3axis/6axis polylines and
 		     loops, and <hatch> for hatch segments. A Binary Encoding extension MAY
 		     supply the geometry through foreign-namespaced elements instead. -->
-		<xs:choice minOccurs="0" maxOccurs="unbounded">
+		<xs:choice minOccurs="0" maxOccurs="2147483647">
 			<xs:element ref="point"/>
 			<xs:element ref="point3d"/>
 			<xs:element ref="point6d"/>
@@ -1507,7 +1575,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="point" type="CT_Point"/>
 	<xs:complexType name="CT_Point">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
@@ -1519,7 +1587,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="point3d" type="CT_Point3D"/>
 	<xs:complexType name="CT_Point3D">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
@@ -1532,7 +1600,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="point6d" type="CT_Point6D"/>
 	<xs:complexType name="CT_Point6D">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
@@ -1549,7 +1617,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="hatch" type="CT_Hatch"/>
 	<xs:complexType name="CT_Hatch">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x1" type="ST_Integer" use="required"/>
 		<xs:attribute name="y1" type="ST_Integer" use="required"/>

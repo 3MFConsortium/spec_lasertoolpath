@@ -112,7 +112,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="parts" type="CT_Parts"/>
 	<xs:complexType name="CT_Parts">
 		<xs:sequence>
-			<xs:element ref="part" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="part" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 	</xs:complexType>
 
@@ -125,7 +125,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="profiles" type="CT_Profiles"/>
 	<xs:complexType name="CT_Profiles">
 		<xs:sequence>
-			<xs:element ref="profile" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="profile" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 	</xs:complexType>
 
@@ -139,7 +139,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="data" type="CT_LayerData"/>
 	<xs:complexType name="CT_LayerData">
 		<xs:sequence>
-			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -147,7 +147,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="segments" type="CT_Segments"/>
 	<xs:complexType name="CT_Segments">
 		<xs:sequence>
-			<xs:element ref="segment" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="segment" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -158,7 +158,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		     <point> for planar, <point3d>/<point6d> for 3axis/6axis polylines and
 		     loops, and <hatch> for hatch segments. A Binary Encoding extension MAY
 		     supply the geometry through foreign-namespaced elements instead. -->
-		<xs:choice minOccurs="0" maxOccurs="unbounded">
+		<xs:choice minOccurs="0" maxOccurs="2147483647">
 			<xs:element ref="point"/>
 			<xs:element ref="point3d"/>
 			<xs:element ref="point6d"/>
@@ -190,7 +190,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="point" type="CT_Point"/>
 	<xs:complexType name="CT_Point">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
@@ -202,7 +202,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="point3d" type="CT_Point3D"/>
 	<xs:complexType name="CT_Point3D">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
@@ -215,7 +215,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="point6d" type="CT_Point6D"/>
 	<xs:complexType name="CT_Point6D">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x" type="ST_Integer" use="required"/>
 		<xs:attribute name="y" type="ST_Integer" use="required"/>
@@ -232,7 +232,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 	<xs:element name="hatch" type="CT_Hatch"/>
 	<xs:complexType name="CT_Hatch">
 		<xs:sequence>
-			<xs:element ref="sub" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element ref="sub" minOccurs="0" maxOccurs="2147483647"/>
 		</xs:sequence>
 		<xs:attribute name="x1" type="ST_Integer" use="required"/>
 		<xs:attribute name="y1" type="ST_Integer" use="required"/>
