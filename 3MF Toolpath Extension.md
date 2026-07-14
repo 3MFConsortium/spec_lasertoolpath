@@ -292,15 +292,15 @@ Each layer file contains geometry segments (e.g., loops, polylines, hatches) as 
 
 ## 3.2 Relationships and Binding
 
-Each layer XML is referenced via an explicit OPC relationship from the main toolpath resource part. These relationships define the role, content type, and URI of each layer file. The root model (e.g. 3dmodels.model) declares a relationship to the Toolpath Resource part, which in turn declares relationships to each layer.
+Each layer XML part is referenced via an explicit OPC relationship from the model part that contains the embedded **\<tp\:toolpathresource>**. The toolpath resource is a resource element inside the core 3MF model document.
 
 > **Note — scope of the "model".** For historic reasons the 3MF Core Specification names the root 3D payload part the *model* (e.g. stored in `/3D/3dmodels.model`). In OPC packages the file name itself is not significant; the package structure is defined by relationships. Despite the name, this part is a container whose scope depends on context: it MAY describe a single part, a multi-part assembly, or a complete build-tray layout. In the toolpath context the generic and expected case is a **full tray assembly** — a layer describes the marking geometry for the entire build platform at a given Z, not for one part in isolation. Individual parts within that build are attributed through the optional per-segment `partid` reference (see [§1.1.1](#111-parts)), which binds regions of a layer back to the objects declared in the model. A layer therefore spans the whole build; `partid` is the mechanism that associates its geometry with individual parts.
 
-The OPC relationship type used to bind a toolpath resource part to each of its layer parts is:
+The OPC relationship type used to bind the model part containing a **\<tp\:toolpathresource>** to each of its layer parts is:
 
 `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer`
 
-The target of each such relationship MUST match the `path` attribute of the corresponding **\<tp\:toolpathlayer>** element (see [Chapter 4](#chapter-4-toolpath-resource-xml-structure)). The same relationship type is also used to bind any additional binary attachments referenced from the toolpath resource per OPC rules.
+The target of each such relationship MUST match the `path` attribute of the corresponding **\<tp\:toolpathlayer>** element (see [Chapter 4](#chapter-4-toolpath-resource-xml-structure)). This relationship type is reserved for layer XML parts. Binary attachments, if used by a separate Binary Encoding extension, MUST use relationship types defined by that extension or by the referencing specification.
 
 This structure ensures:
 - Deterministic resolution of resource dependencies
@@ -331,7 +331,7 @@ Element **\<tp:toolpathresource>**
 | --- | --- | --- | --- | --- |
 | id | **ST\_ResourceID** | required |  | Must be a unique resource ID in the model document. |
 | uuid | **ST\_UUID** | required |  | Globally unique identifier. |
-| unitfactor | **ST\_Number** | required |  | Scaling factor applied to integer toolpath coordinates to obtain lengths in document units (see 3MF Core Specification). |
+| unitfactor | **ST\_PositiveNumber** | required |  | Positive scaling factor applied to integer toolpath coordinates to obtain lengths in document units (see 3MF Core Specification). |
 | toolpathtype | **ST_ToolpathType** | optional | planar | Type of toolpath described. Possible values are planar, 3axis, 6axis. |
 
 ## 4.1 Toolpath profiles
@@ -348,7 +348,7 @@ Element **\<tp:toolpathprofile>**
 | --- | --- | --- | --- | --- |
 | uuid | **ST\_UUID** | required |   | Unique identifier for this profile |
 | name   | **ST\_String** | required |   | Name for this profile. Must be unique in the toolpath. |
-| laserpower | **ST\_PositiveNumber** | optional | lpbf | Laser processes: specifies the power of the laser used, measured in W. |
+| laserpower | **ST\_NonNegativeNumber** | optional | lpbf | Laser processes: specifies the power of the laser used, measured in W. A value of `0` is permitted to represent no laser output. |
 | laserspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while marking, measured in mm/s |
 | jumpspeed   | **ST\_PositiveNumber** | optional   | lpbf  | Laser processes: speed at which the projected laser spot moves while not marking, measured in mm/s |
 | laserfocus   | **ST\_Number** | optional   | lpbf  | Laser processes: Offset for the focal plane of the laser in mm. Positive means above the powder bed. |
@@ -436,6 +436,7 @@ A **\<tp\:modifier>**:
 * **MUST** define a closed range \[**minvalue**, **maxvalue**] in the same units as the target attribute.
 * **MAY** be declared multiple times in a profile, but **no more than one** modifier may target a given attribute within that profile.
 * A profile **MUST NOT** carry more than four modifiers, each identified by a unique factor (`"e"`, `"f"`, `"g"`, or `"h"`); the same factor **MUST NOT** be used by more than one modifier in the same profile.
+* The values produced by a modifier MUST be valid values for the target profile attribute. For example, `laserpower` is non-negative and therefore may be modulated to `0`, while attributes declared with positive numeric types MUST remain greater than `0`.
 * Attribute modifications on a hatch line are supposed to be parametrized in _position_ (i.e. geometric), but not in _time_.
 
 ### Attributes
@@ -535,7 +536,7 @@ Element **\<tp:toolpathlayer>**
 | Name   | Type   | Use   | Default   | Annotation |
 | --- | --- | --- | --- | --- |
 | ztop | **ST\_NonNegativeInteger** | conditional |   | Top Z value of this layer, in device units. REQUIRED for planar toolpaths and MUST be omitted for non-planar toolpaths. (The schema declares it optional because this condition cannot be expressed in XSD.) MUST be greater than or equal to `zbottom`, as well as the `ztop` of the previous layer. If a layer has zero thickness, it is a consumer decision to add a recoat cycle between the layers. Depending on the use case, there SHOULD be a custom metadata instruction to clarify the intended behavior. |
-| path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer` declared from the **\<tp\:toolpathresource>** part (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
+| path | **ST\_UriReference** | required |   | OPC part name (URI) of the layer XML part that holds the geometry for this layer. The referenced part MUST also be the target of an OPC relationship of type `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03/layer` declared from the model part that contains the **\<tp\:toolpathresource>** (see [3.2 Relationships and Binding](#32-relationships-and-binding)). Consumers MUST use this attribute, together with the OPC relationship, to locate and load the layer part. |
 
 
 ## 4.4 Custom Toolpath Metadata
@@ -699,9 +700,9 @@ The attribute is written with the toolpath namespace prefix on the core element,
 
 # Part II. Layer Data
 
-This Part defines the representation of a toolpath layer and the rules for interpreting it. Unless noted otherwise, all coordinates are **integer device units** that MUST be converted to document units by multiplying with the parent **\<tp\:toolpathresource>**’s `unitfactor` (see Part I). Document units are those declared by the core model's `unit` attribute (see the 3MF Core Specification). It is RECOMMENDED that producers use document units of millimeters, so that toolpath coordinates are directly interpretable across consumers. Element and attribute names are case-sensitive.
+This Part defines the representation of a toolpath layer and the rules for interpreting it. Unless noted otherwise, all coordinates are **integer device units** that MUST be converted to document units by multiplying with the parent **\<tp\:toolpathresource>**’s `unitfactor` (see Part I). Document units are those declared by the core model's `unit` attribute (see the 3MF Core Specification). It is RECOMMENDED that producers use document units of millimeters, so that toolpath coordinates are directly interpretable across consumers. Process parameters whose units are stated explicitly in this specification remain metric regardless of the model document unit: speeds are in mm/s, lengths such as focus offset, spot radius, bead width, and bead height are in mm, laser power is in W, and wait times are in microseconds. Element and attribute names are case-sensitive.
 
-Execution order of geometry MUST be the document order. Consumers MUST NOT reorder segments, points within a segment, or hatches within a segment, except where an explicit synchronization or scheduling mechanism defined by this extension (for example, laser sync groups) permits it.
+Execution order of geometry MUST be the document order. The **\<tp\:toolpathlayer>** elements in the parent toolpath resource define layer order by their document order; within each layer, consumers MUST NOT reorder segments, points within a segment, or hatches within a segment, except where an explicit synchronization or scheduling mechanism defined by this extension (for example, laser sync groups) permits it.
 
 # Chapter 1 - Layer ASCII XML Structure
 
@@ -712,7 +713,7 @@ Element **\<layer>**
 * **Namespace (default):** `http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03`
 * **Other namespaces:** Producers MAY declare additional namespaces for vendor metadata (e.g., `mycompany:`) or process attributes (e.g., `skywriting:`). A separate `bin:` namespace is reserved for a Binary Encoding extension.
 
-Consumers MUST ignore unrecognized elements and attributes in namespaces other than the above default, except where this Part explicitly requires rejection.
+Consumers MUST ignore unrecognized elements and attributes in namespaces other than the above default, except where this Part explicitly requires rejection or where the namespace is marked as required by the package's required-extensions declaration. If a namespace is required, a consumer MUST understand it or reject the document.
 
 ## 1.1. References to Parts and Profiles
 
@@ -797,7 +798,7 @@ All segments are listed in document order within **\<segments>**. Segments that 
 | jumpprediction | **ST\_NonNegativeInteger** | optional |     | Producer-estimated jump time to reach the start of this segment from the end of the preceding segment (or the machine origin for the first segment in a layer), in microseconds. This accounts for non-marking repositioning. Consumers MAY use this value for progress estimation, scheduling, or validation, but MUST NOT rely on it for safety-critical timing. |
 | tag       | **ST\_NonNegativeInteger** | optional |         | Producer-defined grouping or ordering hint. Consumers **MAY** ignore. |
 
-A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces of a layer XML, or reject the layer.
+A segment node MAY include arbitrary attributes, if they are properly namespaced. A consumer MUST understand all used namespaces that are marked as required by the package's required-extensions declaration, or reject the layer. Namespaces that are not required and are not recognized MUST be ignored as described above.
 
 ### 1.2.1 Children of Segment
 
@@ -1273,11 +1274,18 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_Number">
-		<xs:restriction base="xs:double"/>
+		<xs:restriction base="xs:double">
+			<xs:pattern value="[-+]?((([0-9]+(\.[0-9]*)?)|(\.[0-9]+))([eE][-+]?[0-9]+)?)"/>
+		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_PositiveNumber">
-		<xs:restriction base="xs:double">
+		<xs:restriction base="ST_Number">
 			<xs:minExclusive value="0.0"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_NonNegativeNumber">
+		<xs:restriction base="ST_Number">
+			<xs:minInclusive value="0.0"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_Integer">
@@ -1375,7 +1383,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:sequence>
 		<xs:attribute name="id" type="ST_ResourceID" use="required"/>
 		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
-		<xs:attribute name="unitfactor" type="ST_Number" use="required"/>
+		<xs:attribute name="unitfactor" type="ST_PositiveNumber" use="required"/>
 		<xs:attribute name="toolpathtype" type="ST_ToolpathType" use="optional" default="planar"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -1394,7 +1402,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:sequence>
 		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
 		<xs:attribute name="name" type="ST_String" use="required"/>
-		<xs:attribute name="laserpower" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="laserpower" type="ST_NonNegativeNumber" use="optional"/>
 		<xs:attribute name="laserspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="jumpspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="laserfocus" type="ST_Number" use="optional"/>
@@ -1429,7 +1437,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 
 	<xs:element name="toolpathlayer" type="CT_ToolpathLayer"/>
 	<xs:complexType name="CT_ToolpathLayer">
-		<xs:attribute name="ztop" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="ztop" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="path" type="ST_UriReference" use="required"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -1633,7 +1641,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 
 # Appendix C. Standard Namespace
 
-A single XML namespace is used for both the **\<tp\:toolpathresource>** structures (Part I) and the layer **\<layer>** structures (Part II). The OPC relationship type below is used to bind a toolpath resource part to its layer parts (and to any additional binary attachments).
+A single XML namespace is used for both the **\<tp\:toolpathresource>** structures (Part I) and the layer **\<layer>** structures (Part II). The OPC relationship type below is used to bind the model part containing an embedded **\<tp\:toolpathresource>** to its layer parts.
 
 | Name | URI |
 | --- | --- |
@@ -1658,9 +1666,6 @@ The following fragments (informative) illustrate how the pieces fit together. Na
        xmlns:tp="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03"
        requiredextensions="p tp">
   <resources>
-    <object id="2" p:UUID="6ed4f9d0-0a1b-4f4a-9b3a-0d2a9a3b6c10" type="model">
-      <mesh> <!-- ... --> </mesh>
-    </object>
     <tp:toolpathresource id="1" uuid="92f90fa0-e2cc-4cb0-a56b-aa4fd2f51868"
                          unitfactor="0.001" toolpathtype="planar">
       <tp:lasersources default="1">
@@ -1674,6 +1679,9 @@ The following fragments (informative) illustrate how the pieces fit together. Na
         <tp:toolpathlayer ztop="50" path="/Toolpath/Layers/layer00001.xml" />
       </tp:toolpathlayers>
     </tp:toolpathresource>
+    <object id="2" p:UUID="6ed4f9d0-0a1b-4f4a-9b3a-0d2a9a3b6c10" type="model">
+      <mesh> <!-- ... --> </mesh>
+    </object>
   </resources>
   <build p:UUID="b4c8a1d2-1e2f-4a3b-8c5d-6e7f80910a2b" tp:toolpathid="1">
     <item objectid="2" p:UUID="2f1d3c4b-5a6e-4d7c-8b9a-0c1d2e3f4a5b"
@@ -1684,7 +1692,7 @@ The following fragments (informative) illustrate how the pieces fit together. Na
 
 ## D.2 OPC relationship binding a layer part
 
-Declared from the toolpath resource part's `.rels`:
+Declared from the model part's `.rels`, for example `/3D/_rels/3dmodel.model.rels`:
 
 ```xml
 <Relationship Id="rel1"
@@ -1698,7 +1706,7 @@ Declared from the toolpath resource part's `.rels`:
 <?xml version="1.0" encoding="UTF-8"?>
 <layer xmlns="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03">
   <parts>
-    <part id="1" uuid="48dcad0f-4ab3-4641-95b1-28cbbf3c028d" />
+    <part id="1" uuid="2f1d3c4b-5a6e-4d7c-8b9a-0c1d2e3f4a5b" />
   </parts>
   <profiles>
     <profile id="1" uuid="54066b90-8346-402b-8bc9-7d7cfdd54686" />

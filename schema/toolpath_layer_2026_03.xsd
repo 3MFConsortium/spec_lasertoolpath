@@ -38,7 +38,9 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_Number">
-		<xs:restriction base="xs:double"/>
+		<xs:restriction base="xs:double">
+			<xs:pattern value="[-+]?((([0-9]+(\.[0-9]*)?)|(\.[0-9]+))([eE][-+]?[0-9]+)?)"/>
+		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_Integer">
 		<xs:restriction base="xs:int"/>

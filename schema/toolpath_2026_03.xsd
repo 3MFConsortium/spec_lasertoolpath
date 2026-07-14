@@ -46,11 +46,18 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_Number">
-		<xs:restriction base="xs:double"/>
+		<xs:restriction base="xs:double">
+			<xs:pattern value="[-+]?((([0-9]+(\.[0-9]*)?)|(\.[0-9]+))([eE][-+]?[0-9]+)?)"/>
+		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_PositiveNumber">
-		<xs:restriction base="xs:double">
+		<xs:restriction base="ST_Number">
 			<xs:minExclusive value="0.0"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ST_NonNegativeNumber">
+		<xs:restriction base="ST_Number">
+			<xs:minInclusive value="0.0"/>
 		</xs:restriction>
 	</xs:simpleType>
 	<xs:simpleType name="ST_Integer">
@@ -148,7 +155,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:sequence>
 		<xs:attribute name="id" type="ST_ResourceID" use="required"/>
 		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
-		<xs:attribute name="unitfactor" type="ST_Number" use="required"/>
+		<xs:attribute name="unitfactor" type="ST_PositiveNumber" use="required"/>
 		<xs:attribute name="toolpathtype" type="ST_ToolpathType" use="optional" default="planar"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
@@ -167,7 +174,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 		</xs:sequence>
 		<xs:attribute name="uuid" type="ST_UUID" use="required"/>
 		<xs:attribute name="name" type="ST_String" use="required"/>
-		<xs:attribute name="laserpower" type="ST_PositiveNumber" use="optional"/>
+		<xs:attribute name="laserpower" type="ST_NonNegativeNumber" use="optional"/>
 		<xs:attribute name="laserspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="jumpspeed" type="ST_PositiveNumber" use="optional"/>
 		<xs:attribute name="laserfocus" type="ST_Number" use="optional"/>
@@ -202,7 +209,7 @@ targetNamespace="http://schemas.3mf.io/3dmanufacturing/toolpath/2026/03" element
 
 	<xs:element name="toolpathlayer" type="CT_ToolpathLayer"/>
 	<xs:complexType name="CT_ToolpathLayer">
-		<xs:attribute name="ztop" type="ST_PositiveInteger" use="optional"/>
+		<xs:attribute name="ztop" type="ST_NonNegativeInteger" use="optional"/>
 		<xs:attribute name="path" type="ST_UriReference" use="required"/>
 		<xs:anyAttribute namespace="##other" processContents="lax"/>
 	</xs:complexType>
